@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 
-export default function LoginForm() {
+export default function UniversalLoginForm() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -15,7 +17,7 @@ export default function LoginForm() {
     const formData = new FormData(e.currentTarget);
     const body = Object.fromEntries(formData.entries());
 
-    const res = await fetch("/api/sellers/login", {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -25,12 +27,18 @@ export default function LoginForm() {
 
     if (!res.ok || !json.success) {
       setMsg("❌ " + json.message);
-    } else {
-      setMsg("✅ Login berhasil! Redirect...");
-      // kamu bisa redirect di sini
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
+    setMsg("✅ Login berhasil! Mengarahkan...");
+
+    // Redirect berdasarkan role
+    if (json.role === "seller") {
+      router.push("/seller/dashboard");
+    } else {
+      router.push("/user/home");
+    }
   }
 
   return (
@@ -41,19 +49,8 @@ export default function LoginForm() {
         </div>
       )}
 
-      <Input
-        label="Email"
-        name="picEmail"
-        type="email"
-        required
-      />
-
-      <Input
-        label="Password"
-        name="password"
-        type="password"
-        required
-      />
+      <Input label="Email" name="email" type="email" required />
+      <Input label="Password" name="password" type="password" required />
 
       <button
         disabled={loading}
