@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
 import UploadFile from "@/components/UploadFile";
@@ -8,6 +9,7 @@ import UploadFile from "@/components/UploadFile";
 export default function SellerRegisterForm() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const router = useRouter(); 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,13 +20,21 @@ export default function SellerRegisterForm() {
 
     const res = await fetch("/api/sellers/register", {
       method: "POST",
-      body: formData,  // <- WAJIB: KIRIM FORM DATA
+      body: formData,
     });
 
     const json = await res.json();
 
-    if (!res.ok) setMsg("❌ " + json.message);
-    else setMsg("✅ Registrasi berhasil");
+    if (!res.ok || !json.success) {
+      setMsg("❌ " + json.message);
+      setLoading(false);
+      return;
+    }
+
+    setMsg("✅ Registrasi berhasil! Mengarahkan ke halaman login...");
+    setTimeout(() => {
+      router.push("/seller/login");
+    }, 2000);
 
     setLoading(false);
   }
