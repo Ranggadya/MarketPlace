@@ -7,47 +7,40 @@ const controller = new SellerController();
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
-
-    // Ambil file
     const photo = form.get("picPhotoPath") as File | null;
     const ktp = form.get("picKtpFilePath") as File | null;
 
-    let photoUrl: string | undefined = undefined;
-    let ktpUrl: string | undefined = undefined;
+    let photoUrl: string | undefined;
+    let ktpUrl: string | undefined;
 
-    // Upload Foto Penjual
+    async function uploadFile(file: File, prefix: string) {
+      const ext = file.name.split(".").pop() || "file";
+      const filename = `${prefix}-${Date.now()}.${ext}`;
+
+      const { data, error } = await supabase.storage
+        .from("seller-files")
+        .upload(filename, file);
+
+      if (error) throw new Error(error.message);
+
+      const { data: urlData } = supabase.storage
+        .from("seller-files")
+        .getPublicUrl(data.path);
+
+      return urlData.publicUrl;
+    }
+
     if (photo) {
-      const upload = await supabase.storage
-        .from("seller-files")
-        .upload(`photo-${Date.now()}.jpg`, photo);
-
-      if (upload.error) throw new Error(upload.error.message);
-
-      photoUrl = supabase.storage
-        .from("seller-files")
-        .getPublicUrl(upload.data.path)
-        .data.publicUrl;
+      photoUrl = await uploadFile(photo, "photo");
     }
 
-    // Upload Foto KTP
     if (ktp) {
-      const upload = await supabase.storage
-        .from("seller-files")
-        .upload(`ktp-${Date.now()}.jpg`, ktp);
-
-      if (upload.error) throw new Error(upload.error.message);
-
-      ktpUrl = supabase.storage
-        .from("seller-files")
-        .getPublicUrl(upload.data.path)
-        .data.publicUrl;
+      ktpUrl = await uploadFile(ktp, "ktp");
     }
 
-    // Semua TEXT FIELD -- aman untuk TypeScript
     const body = {
       storeName: String(form.get("storeName") || ""),
-      storeDescription:
-        form.get("storeDescription")?.toString() || undefined,
+      storeDescription: form.get("storeDescription")?.toString() || undefined,
 
       picName: String(form.get("picName") || ""),
       picPhone: String(form.get("picPhone") || ""),
@@ -62,21 +55,32 @@ export async function POST(req: Request) {
 
       picKtpNumber: String(form.get("picKtpNumber") || ""),
 
-      // FILE URLS
       picPhotoPath: photoUrl,
       picKtpFilePath: ktpUrl,
-
-      // Tambahkan password (WAJIB ADA)
       password: String(form.get("password") || "")
     };
 
     const result = await controller.register(body);
-    return NextResponse.json({ success: true, result });
 
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { success: false, message: msg },
+      { success: true, message: "Registrasi berhasil", data: result },
+      { status: 201 }
+    );
+
+  } catch (err: unknown) {
+    console.error("❌ REGISTER ERROR:", err);
+
+    let message = "Terjadi kesalahan server";
+
+    if (err instanceof Error) {
+      message = err.message;
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message,
+      },
       { status: 400 }
     );
   }
