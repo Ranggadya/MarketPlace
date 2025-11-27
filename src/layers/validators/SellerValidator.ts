@@ -1,26 +1,38 @@
 import { z } from "zod";
 
 export const SellerValidator = z.object({
-  storeName: z.string().min(1),
+  // 🏪 Informasi Toko
+  storeName: z.string().min(1, "Nama toko wajib diisi"),
   storeDescription: z.string().optional(),
 
-  picName: z.string().min(1),
-  picPhone: z.string().min(1),
-  picEmail: z.string().email(),
+  // 👤 PIC
+  picName: z.string().min(1, "Nama PIC wajib diisi"),
+  picPhone: z
+    .string()
+    .min(10, "Nomor HP tidak valid")
+    .regex(/^[0-9+]+$/, "Nomor HP hanya boleh angka"),
+  picEmail: z.string().email("Email tidak valid"),
 
-  picStreet: z.string().min(1),
-  picRT: z.string().min(1),
-  picRW: z.string().min(1),
-  picVillage: z.string().min(1),
-  picCity: z.string().min(1),
-  picProvince: z.string().min(1),
+  // 📍 Alamat PIC
+  picStreet: z.string().min(1, "Nama jalan wajib diisi"),
+  picRT: z.string().min(1, "RT wajib diisi"),
+  picRW: z.string().min(1, "RW wajib diisi"),
+  picVillage: z.string().min(1, "Kelurahan wajib diisi"),
+  picCity: z.string().min(1, "Kota wajib diisi"),
+  picProvince: z.string().min(1, "Provinsi wajib diisi"),
 
-  picKtpNumber: z.string().min(1),
+  // 🆔 KTP
+  picKtpNumber: z
+    .string()
+    .min(10, "Nomor KTP terlalu pendek")
+    .regex(/^[0-9]+$/, "Nomor KTP harus berupa angka"),
 
-  picPhotoPath: z.string().optional(),
-  picKtpFilePath: z.string().optional(),
+  // 📸 Upload File (file bukan string!)
+  picPhotoPath: z.any().optional(),      // File foto penjual
+  picKtpFilePath: z.any().optional(),    // File KTP
 
-  password: z.string().min(6)
+  // 🔐 Password Akun
+  password: z.string().min(6, "Password minimal 6 karakter"),
 });
 
 export type SellerInput = z.infer<typeof SellerValidator>;

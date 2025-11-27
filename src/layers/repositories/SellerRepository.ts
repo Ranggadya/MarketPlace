@@ -17,7 +17,7 @@ export class SellerRepository {
     const { data, error } = await supabase
       .from("sellers")
       .select("*")
-      .eq("picEmail", email)
+      .eq("pic_email", email)
       .maybeSingle();
 
     if (error) throw new Error(error.message);
