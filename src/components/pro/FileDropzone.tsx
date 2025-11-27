@@ -15,7 +15,7 @@ export default function FileDropzone({
         onFile(accepted[0]);
       }
     },
-    [onFile]  // ← FIX DI SINI
+    [onFile]  
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

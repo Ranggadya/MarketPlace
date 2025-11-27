@@ -8,7 +8,6 @@ export default function SellerRegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // FILE STATES
   const [picFile, setPicFile] = useState<File | null>(null);
   const [ktpFile, setKtpFile] = useState<File | null>(null);
 
