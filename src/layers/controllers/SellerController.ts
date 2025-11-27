@@ -1,16 +1,14 @@
-import { SellerInput } from "@validators/SellerValidator";
-import { SellerService } from "@services/SellerService";
+import { SellerService } from "@/layers/services/SellerService";
+import type { SellerInput } from "@/layers/validators/SellerValidator";
 
 export class SellerController {
-  async store(data: SellerInput) {
-    return SellerService.register(data);
+  private service = new SellerService();
+
+  register(body: SellerInput) {
+    return this.service.register(body);
   }
 
-  async list() {
-    return SellerService.getAll();
-  }
-
-  async show(id: string) {
-    return SellerService.getById(id);
+  login(email: string, password: string) {
+    return this.service.login(email, password);
   }
 }

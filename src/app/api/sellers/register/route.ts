@@ -8,12 +8,12 @@ export async function POST(req: Request) {
   try {
     const form = await req.formData();
 
-    // FILE UPLOADS
+    // Ambil file
     const photo = form.get("picPhotoPath") as File | null;
     const ktp = form.get("picKtpFilePath") as File | null;
 
-    let photoUrl: string | null = null;
-    let ktpUrl: string | null = null;
+    let photoUrl: string | undefined = undefined;
+    let ktpUrl: string | undefined = undefined;
 
     // Upload Foto Penjual
     if (photo) {
@@ -21,15 +21,12 @@ export async function POST(req: Request) {
         .from("seller-files")
         .upload(`photo-${Date.now()}.jpg`, photo);
 
-      if (upload.error) {
-        throw new Error(upload.error.message);
-      }
+      if (upload.error) throw new Error(upload.error.message);
 
-      const publicUrl = supabase.storage
+      photoUrl = supabase.storage
         .from("seller-files")
-        .getPublicUrl(upload.data!.path);
-
-      photoUrl = publicUrl.data.publicUrl;
+        .getPublicUrl(upload.data.path)
+        .data.publicUrl;
     }
 
     // Upload Foto KTP
@@ -38,23 +35,19 @@ export async function POST(req: Request) {
         .from("seller-files")
         .upload(`ktp-${Date.now()}.jpg`, ktp);
 
-      if (upload.error) {
-        throw new Error(upload.error.message);
-      }
+      if (upload.error) throw new Error(upload.error.message);
 
-      const publicUrl = supabase.storage
+      ktpUrl = supabase.storage
         .from("seller-files")
-        .getPublicUrl(upload.data!.path);
-
-      ktpUrl = publicUrl.data.publicUrl;
+        .getPublicUrl(upload.data.path)
+        .data.publicUrl;
     }
 
-    // TEXT FIELDS - TypeScript safe
+    // Semua TEXT FIELD -- aman untuk TypeScript
     const body = {
       storeName: String(form.get("storeName") || ""),
-      storeDescription: form.get("storeDescription")
-        ? String(form.get("storeDescription"))
-        : undefined,
+      storeDescription:
+        form.get("storeDescription")?.toString() || undefined,
 
       picName: String(form.get("picName") || ""),
       picPhone: String(form.get("picPhone") || ""),
@@ -69,16 +62,22 @@ export async function POST(req: Request) {
 
       picKtpNumber: String(form.get("picKtpNumber") || ""),
 
-      picPhotoPath: photoUrl ?? undefined,
-      picKtpFilePath: ktpUrl ?? undefined,
+      // FILE URLS
+      picPhotoPath: photoUrl,
+      picKtpFilePath: ktpUrl,
+
+      // Tambahkan password (WAJIB ADA)
+      password: String(form.get("password") || "")
     };
 
-    const result = await controller.store(body);
-
+    const result = await controller.register(body);
     return NextResponse.json({ success: true, result });
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ success: false, message: msg }, { status: 400 });
+    return NextResponse.json(
+      { success: false, message: msg },
+      { status: 400 }
+    );
   }
 }

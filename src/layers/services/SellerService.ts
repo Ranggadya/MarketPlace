@@ -1,31 +1,56 @@
-import { SellerValidator, SellerInput } from "@validators/SellerValidator";
-import { SellerRepository } from "@repositories/SellerRepository";
-import { Seller } from "@lib/models/Seller";
+import { SellerValidator, SellerInput } from "@/layers/validators/SellerValidator";
+import { SellerRepository } from "@/layers/repositories/SellerRepository";
+import { SellerEntity } from "@/lib/models/SellerEntity";
+import bcrypt from "bcryptjs";
 
-const repo = new SellerRepository();
+export class SellerService {
+  private repo = new SellerRepository();
 
-export const SellerService = {
+  /** REGISTER SELLER */
   async register(payload: SellerInput) {
+    // 1. VALIDASI DTO (Zod)
     const parsed = SellerValidator.safeParse(payload);
 
     if (!parsed.success) {
-      throw new Error(parsed.error.issues.map(i => i.message).join(", "));
+      const msg = parsed.error.issues.map(i => i.message).join(", ");
+      throw new Error(msg);
     }
 
-    const seller = new Seller(parsed.data);
+    const data = parsed.data;
 
-    if (!seller.validate()) {
+    // 2. CEK EMAIL SUDAH ADA
+    const exists = await this.repo.findByEmail(data.picEmail);
+    if (exists) {
+      throw new Error("Email sudah digunakan.");
+    }
+
+    // 3. HASH PASSWORD
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // 4. BENTUK ENTITY
+    const entity = new SellerEntity({
+      ...data,
+      password: hashedPassword,
+    });
+
+    if (!entity.validate()) {
       throw new Error("Validasi entity gagal.");
     }
 
-    return repo.create(seller.toObject());
-  },
-
-  getAll() {
-    return repo.findAll();
-  },
-
-  getById(id: string) {
-    return repo.findById(id);
+    return this.repo.create(entity.toObject());
   }
-};
+
+  async login(email: string, password: string) {
+    const seller = await this.repo.findByEmail(email);
+    if (!seller) {
+      throw new Error("Email tidak ditemukan.");
+    }
+
+    const match = await bcrypt.compare(password, seller.password);
+    if (!match) {
+      throw new Error("Password salah.");
+    }
+
+    return seller;
+  }
+}

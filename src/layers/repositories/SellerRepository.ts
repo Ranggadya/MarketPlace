@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import { SellerProps } from "@lib/models/Seller";
+import { SellerRecord } from "@/lib/models/SellerEntity";
 
 export class SellerRepository {
-  async create(data: SellerProps) {
+  async create(data: SellerRecord) {
     const { data: inserted, error } = await supabase
       .from("sellers")
       .insert(data)
@@ -13,10 +13,15 @@ export class SellerRepository {
     return inserted;
   }
 
-  async findAll() {
-    const { data, error } = await supabase.from("sellers").select("*");
+  async findByEmail(email: string) {
+    const { data, error } = await supabase
+      .from("sellers")
+      .select("*")
+      .eq("picEmail", email)
+      .maybeSingle();
+
     if (error) throw new Error(error.message);
-    return data;
+    return data ?? null;
   }
 
   async findById(id: string) {
@@ -24,9 +29,9 @@ export class SellerRepository {
       .from("sellers")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(error.message);
-    return data;
+    return data ?? null;
   }
 }
