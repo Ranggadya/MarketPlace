@@ -22,14 +22,15 @@ module.exports = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#706D54", // Warna Olive Kustom
-          light: "#A08963",
-          dark: "#626F47",
-          foreground: "hsl(var(--primary-foreground))",
+          // GANTI OLIVE JADI MERAH E-COMMERCE
+          DEFAULT: "#DB4444", 
+          light: "#E57373",
+          dark: "#B71C1C",
+          foreground: "#FFFFFF", // Teks di atas tombol merah wajib putih
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "#F5F5F5", // Abu-abu sangat muda (biar merahnya nonjol)
+          foreground: "#171717",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -40,8 +41,8 @@ module.exports = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "#778873", // Warna Accent Kustom
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "#FAFAFA",
+          foreground: "#171717",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
