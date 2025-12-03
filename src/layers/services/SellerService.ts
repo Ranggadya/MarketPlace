@@ -1,10 +1,10 @@
 import { SellerValidator, SellerInput } from "@validators/SellerValidator";
-import { SellerRepository } from "@repositories/SellerRepository";
+import SellerRepository from "@repositories/SellerRepository";
 import { Seller } from "@lib/models/Seller";
 
 const repo = new SellerRepository();
 
-export const SellerService = {
+const SellerService = {
   async register(payload: SellerInput) {
     const parsed = SellerValidator.safeParse(payload);
 
@@ -29,3 +29,5 @@ export const SellerService = {
     return repo.findById(id);
   }
 };
+
+export default SellerService;

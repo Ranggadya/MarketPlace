@@ -1,7 +1,7 @@
 import { SellerInput } from "@validators/SellerValidator";
-import { SellerService } from "@services/SellerService";
+import SellerService from "@services/SellerService";
 
-export class SellerController {
+export default class SellerController {
   async store(data: SellerInput) {
     return SellerService.register(data);
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SellerController } from "@/layers/controllers/SellerController";
+import SellerController from "@/layers/controllers/SellerController";
 import { supabase } from "@/lib/supabase";
 
 const controller = new SellerController();

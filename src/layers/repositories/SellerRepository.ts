@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { SellerProps } from "@lib/models/Seller";
 
-export class SellerRepository {
+export default class SellerRepository {
   async create(data: SellerProps) {
     const { data: inserted, error } = await supabase
       .from("sellers")
