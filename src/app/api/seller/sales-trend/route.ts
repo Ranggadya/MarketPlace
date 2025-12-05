@@ -1,24 +1,29 @@
 import { createClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
-// ⚠️ GANTI ID INI DENGAN UUID DARI SUPABASE KAMU (SQL: SELECT id FROM auth.users LIMIT 1)
-const DEV_USER_ID = "77c3dac9-5717-4998-acd2-3aaf8686d4f5"; 
-
-// Helper untuk menentukan User ID (Hybrid Logic)
+// Helper untuk mendapatkan User ID dari session (Multi-Seller Support)
 async function getUserId() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
   
-  // Jika ada user login (Production/Integrated), pakai ID dia.
-  if (user) return user.id;
+  // Return null jika tidak ada user login
+  if (error || !user) return null;
   
-  // Jika tidak ada user login (Development sendiri), pakai ID Hardcode.
-  return DEV_USER_ID;
+  return user.id;
 }
 
 export async function GET() {
   try {
     const userId = await getUserId();
+
+    // Jika tidak ada user login, return 401 Unauthorized
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized. Please login first." },
+        { status: 401 }
+      );
+    }
+
     const supabase = await createClient();
 
     // Get last 7 days of orders for this seller
