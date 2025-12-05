@@ -2,8 +2,18 @@
 
 import generateReportPDF from "@/lib/pdf-generator";
 
+interface Product {
+  id: string;
+  name: string;
+  stock: number;
+  price: number;
+  rating?: number;
+  category?: { name: string };
+  categories?: { name: string };
+}
+
 interface ReportPanelProps {
-  products: any[];
+  products: Product[];
   user: string;
 }
 

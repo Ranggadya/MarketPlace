@@ -40,7 +40,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const response = await controller.create(body);
+    
+    // Automatically add seller_id from authenticated user
+    const sellerId = await getUserId();
+    
+    // Debug logging
+    console.log("📥 Received body:", body);
+    console.log("🖼️ Images from body:", body.images);
+    console.log("🔍 Images type:", typeof body.images);
+    console.log("🔍 Images is Array:", Array.isArray(body.images));
+    
+    const payload = {
+      ...body,
+      seller_id: sellerId,
+      // Ensure images is properly formatted as JSON array or null
+      images: body.images && Array.isArray(body.images) && body.images.length > 0 
+        ? body.images 
+        : null,
+    };
+    
+    console.log("📤 Final payload:", payload);
+    console.log("🖼️ Final images:", payload.images);
+    
+    const response = await controller.create(payload);
     return response;
   } catch (error) {
     console.error("POST /api/products error:", error);

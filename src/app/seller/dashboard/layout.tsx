@@ -1,17 +1,18 @@
 import Sidebar from "@/components/Sidebar";
 
-export default function SellerDashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
       <Sidebar />
-      <main className="flex-1 lg:ml-64">
-        <div className="p-8">
-          {children}
-        </div>
+
+      {/* Main Content Area - HAPUS SEMUA PADDING */}
+      <main className="flex-1 overflow-y-auto">
+        {children}
       </main>
     </div>
   );

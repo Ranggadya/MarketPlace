@@ -1,5 +1,5 @@
-import ProductRepository from "../repositories/ProductRepository";
 import { NextResponse } from "next/server";
+import ProductRepository from "@/layers/repositories/ProductRepository";
 
 export default class ProductController {
   private repo: ProductRepository;
@@ -28,8 +28,22 @@ export default class ProductController {
     }
   }
 
-  async create(payload: unknown) {
+  async create(payload: any) {
     try {
+      // Validate required fields
+      if (!payload.seller_id) {
+        return NextResponse.json(
+          { success: false, message: "seller_id is required" },
+          { status: 400 }
+        );
+      }
+      if (!payload.name || !payload.category_id) {
+        return NextResponse.json(
+          { success: false, message: "name and category_id are required" },
+          { status: 400 }
+        );
+      }
+
       const data = await this.repo.create(payload);
       return NextResponse.json({ success: true, data });
     } catch (e: unknown) {
