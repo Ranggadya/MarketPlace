@@ -1,11 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, User, Heart, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 export default function Navbar() {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Hide Navbar on Admin and Seller dashboards
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/seller")) {
+    return null;
+  }
+
   // Detect scroll untuk sticky shadow effect
   useEffect(() => {
     const handleScroll = () => {
