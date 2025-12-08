@@ -8,7 +8,7 @@ export interface ProductFilters {
 }
 export class ProductRepository {
   /**
-   * Find all products dengan filters (EXISTING - Keep as is)
+   * Find all products dengan filters
    */
   async findAll(filters: ProductFilters = {}): Promise<ProductDB[]> {
     let query = supabase
@@ -36,7 +36,6 @@ export class ProductRepository {
   }
   /**
    * Find product by ID dengan JOIN sellers & categories
-   * ✅ UPDATED: Tambah pic_phone di SELECT query
    */
   async findById(productId: string): Promise<ProductDB | null> {
     try {
@@ -59,6 +58,27 @@ export class ProductRepository {
       return data as ProductDB;
     } catch (error) {
       console.error("ProductRepository.findById error:", error);
+      throw error;
+    }
+  }
+  /**
+   * ✅ NEW METHOD: Update product rating (after new review submission)
+   * @param productId - UUID of product
+   * @param newRating - New average rating (0-5, rounded to 1 decimal)
+   */
+  async updateRating(productId: string, newRating: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ rating: newRating })
+        .eq("id", productId);
+      if (error) {
+        console.error("Error updating product rating:", error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      console.log(`✅ Product ${productId} rating updated to ${newRating}`);
+    } catch (error) {
+      console.error("ProductRepository.updateRating error:", error);
       throw error;
     }
   }

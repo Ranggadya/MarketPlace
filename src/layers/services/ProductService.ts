@@ -12,7 +12,7 @@ export class ProductService {
     this.reviewRepository = new ReviewRepository();
   }
   /**
-   * Get product catalog dengan optional filters (EXISTING METHOD)
+   * Get product catalog dengan optional filters
    * @param filters - Object dengan keyword, location, category
    * @returns Array of Product (Frontend-ready)
    */
@@ -26,7 +26,7 @@ export class ProductService {
     }
   }
   /**
-   * Get product detail by ID (NEW METHOD)
+   * Get product detail by ID
    * @param productId - UUID dari product
    * @returns ProductDetail dengan reviews
    */
@@ -77,13 +77,13 @@ export class ProductService {
     }
   }
   /**
-   * Submit guest review (NEW METHOD)
+   * ✅ UPDATED: Submit guest review dengan SINKRONISASI RATING
    * @param reviewData - Data dari form review
    * @returns Created review object
    */
   async submitReview(reviewData: CreateReviewData): Promise<GuestReview> {
     try {
-      // Validasi input
+      // 1. Validasi input server-side
       if (!reviewData.guestName || reviewData.guestName.trim().length < 2) {
         throw new Error("Nama harus diisi minimal 2 karakter.");
       }
@@ -99,8 +99,18 @@ export class ProductService {
       if (!reviewData.comment || reviewData.comment.trim().length < 10) {
         throw new Error("Ulasan harus diisi minimal 10 karakter.");
       }
-      // Insert ke database
+      // 2. Insert review ke database
       const createdReview = await this.reviewRepository.create(reviewData);
+      // 3. ✅ SYNC RATING: Hitung ulang rata-rata rating dari semua review
+      const newAverageRating = await this.reviewRepository.getAverageRating(
+        reviewData.productId
+      );
+      // 4. ✅ UPDATE: Update tabel products dengan rata-rata rating baru
+      await this.productRepository.updateRating(
+        reviewData.productId,
+        newAverageRating
+      );
+      console.log(`✅ Review submitted and product rating synced: ${newAverageRating}`);
       return createdReview;
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -108,7 +118,7 @@ export class ProductService {
     }
   }
   /**
-   * Map raw DB data ke Frontend interface (EXISTING)
+   * Map raw DB data ke Frontend interface
    * @private
    */
   private mapToProduct(data: ProductDB): Product {

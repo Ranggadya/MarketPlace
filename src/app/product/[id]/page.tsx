@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Star, MapPin, Store, MessageCircle } from "lucide-react";
 import { ProductService } from "@/layers/services/ProductService";
 import ProductReviews from "@/components/ProductReviews";
-import ProductImageGallery from "@/components/ProductImageGallery"; // ✅ NEW IMPORT
+import ProductImageGallery from "@/components/ProductImageGallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,27 +15,22 @@ interface ProductDetailPageProps {
 /**
  * Format nomor HP Indonesia untuk WhatsApp link
  * Converts: 08xxx → 628xxx
- * Handles: spaces, dashes, parentheses
  */
 function formatPhoneForWhatsApp(phone: string): string {
-  // Remove semua non-digit characters (spasi, dash, tanda kurung, dll)
   const cleaned = phone.replace(/\D/g, "");
   
-  // Convert 08xxx → 628xxx
   if (cleaned.startsWith("08")) {
     return "62" + cleaned.substring(1);
   }
   
-  // Jika sudah 628xxx, return as is
   if (cleaned.startsWith("62")) {
     return cleaned;
   }
   
-  // Jika format lain (edge case), assume Indonesia dan tambah 62
   return "62" + cleaned;
 }
 /**
- * Generate pre-filled WhatsApp message (Detailed format)
+ * Generate pre-filled WhatsApp message
  */
 function generateWhatsAppMessage(storeName: string, productName: string, price: number): string {
   const formattedPrice = new Intl.NumberFormat("id-ID", {
@@ -133,21 +128,33 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 {formatPrice(product.price)}
               </p>
             </div>
-            {/* Rating & Sold */}
+            {/* ✅ Rating & Sold - CONDITIONAL RENDERING */}
             <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
-              <div className="flex items-center gap-2">
-                {renderStars(Math.round(averageRating))}
-                <span className="font-semibold text-gray-900">
-                  {averageRating.toFixed(1)}
-                </span>
-                <span className="text-sm text-gray-500">
-                  ({reviewCount} ulasan)
-                </span>
-              </div>
-              <div className="h-6 w-px bg-gray-300" />
-              <div className="text-gray-600">
-                <span className="font-semibold text-gray-900">{product.sold}</span> Terjual
-              </div>
+              {/* Rating - HIDE jika averageRating === 0 */}
+              {averageRating > 0 && (
+                <>
+                  <div className="flex items-center gap-2">
+                    {renderStars(Math.round(averageRating))}
+                    <span className="font-semibold text-gray-900">
+                      {averageRating.toFixed(1)}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      ({reviewCount} ulasan)
+                    </span>
+                  </div>
+                  {product.sold > 0 && <div className="h-6 w-px bg-gray-300" />}
+                </>
+              )}
+              {/* Sold - HIDE jika 0 */}
+              {product.sold > 0 && (
+                <div className="text-gray-600">
+                  <span className="font-semibold text-gray-900">{product.sold}</span> Terjual
+                </div>
+              )}
+              {/* Jika tidak ada rating DAN tidak ada sold, tampilkan placeholder */}
+              {averageRating === 0 && product.sold === 0 && (
+                <p className="text-sm text-gray-500">Produk baru - belum ada ulasan</p>
+              )}
             </div>
             {/* Description */}
             <div className="space-y-2">

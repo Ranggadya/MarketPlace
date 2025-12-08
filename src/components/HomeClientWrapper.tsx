@@ -2,7 +2,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import CategoryPills from "@/components/CategoryPills";
-export default function HomeClientWrapper() {
+interface HomeClientWrapperProps {
+  type?: "searchbar" | "pills" | "both";
+}
+export default function HomeClientWrapper({ type = "both" }: HomeClientWrapperProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Read current values dari URL
@@ -49,16 +52,22 @@ export default function HomeClientWrapper() {
   };
   return (
     <>
-      <SearchBar 
-        onSearch={handleSearch}
-        initialKeyword={currentKeyword}
-        initialLocation={currentLocation}
-        initialCategory={currentCategory}
-      />
-      <CategoryPills 
-        onCategoryChange={handleCategoryChange}
-        initialCategory={currentCategory}
-      />
+      {/* Conditional Rendering: SearchBar */}
+      {(type === "searchbar" || type === "both") && (
+        <SearchBar 
+          onSearch={handleSearch}
+          initialKeyword={currentKeyword}
+          initialLocation={currentLocation}
+          initialCategory={currentCategory}
+        />
+      )}
+      {/* Conditional Rendering: CategoryPills */}
+      {(type === "pills" || type === "both") && (
+        <CategoryPills 
+          onCategoryChange={handleCategoryChange}
+          initialCategory={currentCategory}
+        />
+      )}
     </>
   );
 }
