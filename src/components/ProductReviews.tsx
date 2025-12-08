@@ -5,54 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-// Dummy Reviews Data
-const dummyReviews = [
-  {
-    id: "1",
-    userName: "Ahmad Rizki",
-    avatar: "https://i.pravatar.cc/150?img=12",
-    rating: 5,
-    comment: "Produk sesuai deskripsi, kualitas bagus banget! Pengiriman cepat dan packing rapi. Highly recommended!",
-    date: "2025-01-15",
-  },
-  {
-    id: "2",
-    userName: "Siti Nurhaliza",
-    avatar: "https://i.pravatar.cc/150?img=45",
-    rating: 4,
-    comment: "Barang bagus, tapi pengiriman agak lama. Overall puas dengan produknya. Worth it dengan harganya.",
-    date: "2025-01-10",
-  },
-  {
-    id: "3",
-    userName: "Budi Santoso",
-    avatar: "https://i.pravatar.cc/150?img=33",
-    rating: 5,
-    comment: "Mantap! Seller responsif, barang original sesuai foto. Pasti beli lagi disini. Terima kasih!",
-    date: "2025-01-08",
-  },
-  {
-    id: "4",
-    userName: "Dewi Lestari",
-    avatar: "https://i.pravatar.cc/150?img=27",
-    rating: 5,
-    comment: "Bagus banget! Kualitas premium dengan harga terjangkau. Pelayanan seller juga ramah dan fast respon.",
-    date: "2025-01-05",
-  },
-  {
-    id: "5",
-    userName: "Eko Prasetyo",
-    avatar: "https://i.pravatar.cc/150?img=68",
-    rating: 4,
-    comment: "Produk sesuai ekspektasi. Pengalaman belanja yang menyenangkan. Akan rekomendasikan ke teman-teman.",
-    date: "2024-12-28",
-  },
-];
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { submitReviewAction } from "@/layers/actions/review";
+import { GuestReview } from "@/lib/models/Review";
 interface ProductReviewsProps {
   productId: string;
+  reviews: GuestReview[];
+  reviewCount: number;
 }
-export default function ProductReviews({ productId }: ProductReviewsProps) {
+export default function ProductReviews({ productId, reviews, reviewCount }: ProductReviewsProps) {
   // Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -64,6 +25,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   
   const [hoverRating, setHoverRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   // Handle input change
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -76,33 +38,48 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     setFormData((prev) => ({ ...prev, rating }));
   };
   // Handle form submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Validation
+    setSubmitMessage(null);
+    // Client-side validation
     if (!formData.name || !formData.email || !formData.phone || formData.rating === 0 || !formData.comment) {
-      alert("Mohon lengkapi semua field!");
+      setSubmitMessage({ type: "error", text: "Mohon lengkapi semua field!" });
       setIsSubmitting(false);
       return;
     }
-    // Dummy implementation: Console log + Success alert
-    console.log("Review submitted for product:", productId);
-    console.log("Form data:", formData);
-    // Simulate API call
-    setTimeout(() => {
-      alert("✅ Ulasan berhasil dikirim! Terima kasih atas feedback Anda.");
-      
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        rating: 0,
-        comment: "",
-      });
-      
+    try {
+      // Prepare FormData untuk server action
+      const formDataObj = new FormData();
+      formDataObj.append("name", formData.name);
+      formDataObj.append("email", formData.email);
+      formDataObj.append("phone", formData.phone);
+      formDataObj.append("rating", formData.rating.toString());
+      formDataObj.append("comment", formData.comment);
+      // Call server action
+      const result = await submitReviewAction(productId, formDataObj);
+      if (result.success) {
+        setSubmitMessage({ type: "success", text: result.message });
+        
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          rating: 0,
+          comment: "",
+        });
+        // Auto-hide success message setelah 5 detik
+        setTimeout(() => setSubmitMessage(null), 5000);
+      } else {
+        setSubmitMessage({ type: "error", text: result.message });
+      }
+    } catch (error: any) {
+      console.error("Submit review error:", error);
+      setSubmitMessage({ type: "error", text: "Terjadi kesalahan. Silakan coba lagi." });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
   // Render star rating (filled or empty)
   const renderStars = (rating: number, size: string = "w-4 h-4") => {
@@ -124,7 +101,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       </div>
     );
   };
-  // Render interactive rating stars for form
+  // Render interactive rating stars untuk form
   const renderInteractiveStars = () => {
     return (
       <div className="flex gap-1">
@@ -169,43 +146,49 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">
-            Ulasan Produk ({dummyReviews.length})
+            Ulasan Produk ({reviewCount})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {dummyReviews.map((review) => (
-            <div
-              key={review.id}
-              className="pb-6 border-b border-gray-200 last:border-0 last:pb-0"
-            >
-              <div className="flex items-start gap-4">
-                {/* Avatar */}
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={review.avatar} alt={review.userName} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                    {review.userName.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Review Content */}
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-gray-900">
-                      {review.userName}
-                    </h4>
-                    <span className="text-sm text-gray-500">
-                      {formatDate(review.date)}
-                    </span>
+          {reviews.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg">Belum ada ulasan untuk produk ini.</p>
+              <p className="text-sm mt-2">Jadilah yang pertama memberikan ulasan!</p>
+            </div>
+          ) : (
+            reviews.map((review) => (
+              <div
+                key={review.id}
+                className="pb-6 border-b border-gray-200 last:border-0 last:pb-0"
+              >
+                <div className="flex items-start gap-4">
+                  {/* Avatar */}
+                  <Avatar className="w-12 h-12">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {review.guestName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Review Content */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-gray-900">
+                        {review.guestName}
+                      </h4>
+                      <span className="text-sm text-gray-500">
+                        {formatDate(review.createdAt)}
+                      </span>
+                    </div>
+                    {/* Rating Stars */}
+                    {renderStars(review.rating)}
+                    {/* Comment */}
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {review.comment}
+                    </p>
                   </div>
-                  {/* Rating Stars */}
-                  {renderStars(review.rating)}
-                  {/* Comment */}
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {review.comment}
-                  </p>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
       {/* Review Form Section (SRS-06) */}
@@ -217,6 +200,18 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Submit Message */}
+            {submitMessage && (
+              <div
+                className={`p-4 rounded-lg ${
+                  submitMessage.type === "success"
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : "bg-red-50 text-red-800 border border-red-200"
+                }`}
+              >
+                {submitMessage.text}
+              </div>
+            )}
             {/* Input Fields Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Nama */}
@@ -232,6 +227,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
               {/* Email */}
@@ -247,6 +243,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
               {/* No HP */}
@@ -262,6 +259,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -292,6 +290,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                 onChange={handleInputChange}
                 rows={5}
                 required
+                disabled={isSubmitting}
                 className="resize-none"
               />
             </div>

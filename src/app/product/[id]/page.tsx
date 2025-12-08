@@ -1,26 +1,64 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, MapPin, Store, Heart, ShoppingCart } from "lucide-react";
-import { getProductById } from "@/lib/productData";
+import { ArrowLeft, Star, MapPin, Store, MessageCircle } from "lucide-react";
+import { ProductService } from "@/layers/services/ProductService";
 import ProductReviews from "@/components/ProductReviews";
+import ProductImageGallery from "@/components/ProductImageGallery"; // ✅ NEW IMPORT
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 interface ProductDetailPageProps {
-  params: Promise<{    // ✅ Updated: params is now Promise
+  params: Promise<{
     id: string;
   }>;
 }
-export default async function ProductDetailPage({ 
-  params 
-}: ProductDetailPageProps) {
-  // ✅ FIX: Unwrap params Promise with await
+/**
+ * Format nomor HP Indonesia untuk WhatsApp link
+ * Converts: 08xxx → 628xxx
+ * Handles: spaces, dashes, parentheses
+ */
+function formatPhoneForWhatsApp(phone: string): string {
+  // Remove semua non-digit characters (spasi, dash, tanda kurung, dll)
+  const cleaned = phone.replace(/\D/g, "");
+  
+  // Convert 08xxx → 628xxx
+  if (cleaned.startsWith("08")) {
+    return "62" + cleaned.substring(1);
+  }
+  
+  // Jika sudah 628xxx, return as is
+  if (cleaned.startsWith("62")) {
+    return cleaned;
+  }
+  
+  // Jika format lain (edge case), assume Indonesia dan tambah 62
+  return "62" + cleaned;
+}
+/**
+ * Generate pre-filled WhatsApp message (Detailed format)
+ */
+function generateWhatsAppMessage(storeName: string, productName: string, price: number): string {
+  const formattedPrice = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(price);
+  return `Halo ${storeName}, saya melihat produk Anda di Marketplace PPL:
+Nama Produk: ${productName}
+Harga: ${formattedPrice}
+Apakah produk masih tersedia? Terima kasih.`;
+}
+export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+  // Unwrap params Promise
   const { id } = await params;
-  const product = getProductById(id);
+  // Fetch product detail dari database
+  const productService = new ProductService();
+  const result = await productService.getProductDetail(id);
   // Handle 404 - Product not found
-  if (!product) {
+  if (!result) {
     notFound();
   }
+  const { product, reviews, reviewCount, averageRating } = result;
   // Format price to IDR
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -49,6 +87,12 @@ export default async function ProductDetailPage({
       </div>
     );
   };
+  // Generate WhatsApp link jika seller phone tersedia
+  const whatsappLink = product.sellerPhone
+    ? `https://wa.me/${formatPhoneForWhatsApp(product.sellerPhone)}?text=${encodeURIComponent(
+        generateWhatsAppMessage(product.storeName, product.name, product.price)
+      )}`
+    : null;
   return (
     <main className="min-h-screen bg-white">
       {/* Back Button */}
@@ -66,16 +110,11 @@ export default async function ProductDetailPage({
       {/* Product Detail Section */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Left Column: Product Image */}
-          <div className="space-y-4">
-            <div className="aspect-square overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-          </div>
+          {/* Left Column: Product Image Gallery */}
+          <ProductImageGallery 
+            images={product.images} 
+            productName={product.name} 
+          />
           {/* Right Column: Product Info */}
           <div className="space-y-6">
             {/* Category Badge */}
@@ -97,9 +136,12 @@ export default async function ProductDetailPage({
             {/* Rating & Sold */}
             <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
               <div className="flex items-center gap-2">
-                {renderStars(product.rating)}
+                {renderStars(Math.round(averageRating))}
                 <span className="font-semibold text-gray-900">
-                  {product.rating.toFixed(1)}
+                  {averageRating.toFixed(1)}
+                </span>
+                <span className="text-sm text-gray-500">
+                  ({reviewCount} ulasan)
                 </span>
               </div>
               <div className="h-6 w-px bg-gray-300" />
@@ -112,7 +154,7 @@ export default async function ProductDetailPage({
               <h2 className="text-lg font-semibold text-gray-900">
                 Deskripsi Produk
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                 {product.description}
               </p>
             </div>
@@ -127,36 +169,33 @@ export default async function ProductDetailPage({
                     <h3 className="font-semibold text-gray-900">
                       {product.storeName}
                     </h3>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-gray-700">
-                          {product.storeRating.toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <MapPin className="w-4 h-4" />
-                        <span>{product.location}</span>
-                      </div>
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm">{product.storeCity}</span>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button size="lg" className="flex-1 text-base font-semibold">
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Beli Sekarang
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="sm:w-auto px-6"
-              >
-                <Heart className="w-5 h-5" />
-              </Button>
-            </div>
+            {/* Action Buttons - WhatsApp */}
+            {whatsappLink && (
+              <div className="pt-4">
+                <Link 
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button 
+                    size="lg" 
+                    className="w-full text-base font-semibold bg-[#25D366] hover:bg-[#20BA5A] text-white"
+                  >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Chat via WhatsApp
+                  </Button>
+                </Link>
+              </div>
+            )}
             {/* Info Note */}
             <p className="text-sm text-gray-500 pt-2">
               💡 <span className="font-medium">Tips:</span> Chat penjual untuk nego harga atau tanya stok sebelum membeli.
@@ -166,7 +205,11 @@ export default async function ProductDetailPage({
       </section>
       {/* Reviews Section */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 border-t border-gray-200">
-        <ProductReviews productId={id} />
+        <ProductReviews 
+          productId={id} 
+          reviews={reviews} 
+          reviewCount={reviewCount} 
+        />
       </section>
     </main>
   );
