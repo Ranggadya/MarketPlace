@@ -7,7 +7,7 @@ import { CreateReviewData, GuestReview, isValidRating, isValidEmail, isValidPhon
 // Placeholder image jika array images kosong
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80";
 
-export default class ProductService {
+export class ProductService {
   private repo: ProductRepository;
   private reviewRepository: ReviewRepository;
 
