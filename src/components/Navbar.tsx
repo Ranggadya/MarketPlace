@@ -1,8 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingBag, User, Heart, Menu, X } from "lucide-react";
+import { ShoppingBag, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -31,106 +38,46 @@ export default function Navbar() {
               Marketplace <span className="text-primary">PPL</span>
             </span>
           </Link>
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link
-              href="/"
-              className="text-gray-700 hover:text-primary font-medium transition-colors"
-            >
-              Beranda
-            </Link>
-            <Link
-              href="/products"
-              className="text-gray-700 hover:text-primary font-medium transition-colors"
-            >
-              Produk
-            </Link>
-            <Link
-              href="/categories"
-              className="text-gray-700 hover:text-primary font-medium transition-colors"
-            >
-              Kategori
-            </Link>
-            <Link
-              href="/about"
-              className="text-gray-700 hover:text-primary font-medium transition-colors"
-            >
-              Tentang
-            </Link>
-          </div>
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/wishlist">
-                <Heart className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/login">
-                <User className="w-4 h-4 mr-2" />
-                Masuk
-              </Link>
+            <Button variant="ghost" asChild>
+              <Link href="/login">Masuk</Link>
             </Button>
             <Button asChild>
-              <Link href="/register">Daftar</Link>
+              <Link href="/seller/register">Mulai Jualan</Link>
             </Button>
           </div>
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-gray-700 hover:text-primary"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          {/* Mobile Menu - Sheet */}
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button className="md:hidden p-2 text-gray-700 hover:text-primary transition-colors">
+                <Menu className="w-6 h-6" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-4 mt-8">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  asChild
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Link href="/login">Masuk</Link>
+                </Button>
+                <Button
+                  className="w-full"
+                  asChild
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Link href="/seller/register">Mulai Jualan</Link>
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 space-y-4">
-            <Link
-              href="/"
-              className="block text-gray-700 hover:text-primary font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Beranda
-            </Link>
-            <Link
-              href="/products"
-              className="block text-gray-700 hover:text-primary font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Produk
-            </Link>
-            <Link
-              href="/categories"
-              className="block text-gray-700 hover:text-primary font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Kategori
-            </Link>
-            <Link
-              href="/about"
-              className="block text-gray-700 hover:text-primary font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Tentang
-            </Link>
-            <div className="pt-4 space-y-2">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/login">
-                  <User className="w-4 h-4 mr-2" />
-                  Masuk
-                </Link>
-              </Button>
-              <Button className="w-full" asChild>
-                <Link href="/register">Daftar</Link>
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );

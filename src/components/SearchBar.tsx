@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,19 +10,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CATEGORY_OPTIONS } from "@/lib/constants";
 interface SearchBarProps {
   onSearch?: (query: string, location: string, category: string) => void;
+  initialKeyword?: string;
+  initialLocation?: string;
+  initialCategory?: string;
 }
-export default function SearchBar({ onSearch }: SearchBarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [locationQuery, setLocationQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+export default function SearchBar({ 
+  onSearch,
+  initialKeyword = "",
+  initialLocation = "",
+  initialCategory = "all",
+}: SearchBarProps) {
+  const [searchQuery, setSearchQuery] = useState(initialKeyword);
+  const [locationQuery, setLocationQuery] = useState(initialLocation);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  // Sync state dengan initial values saat props berubah (dari URL)
+  useEffect(() => {
+    setSearchQuery(initialKeyword);
+    setLocationQuery(initialLocation);
+    setSelectedCategory(initialCategory);
+  }, [initialKeyword, initialLocation, initialCategory]);
   const handleSearch = () => {
     if (onSearch) {
       onSearch(searchQuery, locationQuery, selectedCategory);
     }
-    // Log untuk debugging
-    console.log("Search:", { searchQuery, locationQuery, selectedCategory });
   };
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -63,13 +76,11 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               <SelectValue placeholder="Kategori" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua Kategori</SelectItem>
-              <SelectItem value="elektronik">Elektronik</SelectItem>
-              <SelectItem value="fashion">Fashion</SelectItem>
-              <SelectItem value="makanan">Makanan & Minuman</SelectItem>
-              <SelectItem value="buku">Buku & Alat Tulis</SelectItem>
-              <SelectItem value="hobi">Hobi & Koleksi</SelectItem>
-              <SelectItem value="lainnya">Lainnya</SelectItem>
+              {CATEGORY_OPTIONS.map((category) => (
+                <SelectItem key={category.value} value={category.value}>
+                  {category.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
