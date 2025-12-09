@@ -15,7 +15,7 @@ const benefits = [
   {
     icon: Star,
     title: "Ulasan Transparan",
-    description: "Lihat rating dan ulasan asli dari komunitas mahasiswa sebelum memutuskan membeli.",
+    description: "Lihat rating dan ulasan asli dari pengguna lain sebelum membeli.",
   },
 ];
 
@@ -28,7 +28,7 @@ export default function TrustSection() {
             Mengapa Pilih Kami?
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Marketplace PPL menyediakan wadah aman untuk transaksi jual beli di lingkungan kampus.
+            Marketplace PPL menyediakan wadah aman untuk transaksi jual beli di Indonesia.
           </p>
         </div>
         
