@@ -16,11 +16,6 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Hide Navbar on Admin and Seller dashboards
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/seller")) {
-    return null;
-  }
-
   // Detect scroll untuk sticky shadow effect
   useEffect(() => {
     const handleScroll = () => {
@@ -29,6 +24,11 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Hide Navbar on Admin and Seller dashboards
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/seller/dashboard")) {
+    return null;
+  }
   return (
     <nav
       className={`sticky top-0 z-50 bg-white border-b transition-shadow duration-200 ${
