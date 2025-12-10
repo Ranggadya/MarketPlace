@@ -3,11 +3,19 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { createClient } from "@supabase/supabase-js";
-import { 
-  Store, Package, ShoppingCart, DollarSign, 
-  TrendingUp, Clock, Loader2, Plus 
+import {
+  Store,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  Loader2,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
+import SellerDashboardCharts from "@/components/seller/SellerDashboardCharts";
+
 interface DashboardStats {
   totalProducts: number;
   activeProducts: number;
@@ -39,7 +47,7 @@ export default function SellerDashboardPage() {
   async function loadDashboardStats() {
     try {
       setLoading(true);
-      
+
       // Get products count
       const { count: totalProducts } = await supabase
         .from("products")
@@ -143,6 +151,12 @@ export default function SellerDashboardPage() {
                   subtitle="Dapat ditarik"
                 />
               </div>
+
+              {/* Charts Section (SRS-08) */}
+              <div className="mb-8">
+                <SellerDashboardCharts />
+              </div>
+
               {/* Quick Actions */}
               <div className="bg-white rounded-xl shadow-md p-6 mb-8">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">
@@ -190,7 +204,13 @@ interface StatCardProps {
   color: "blue" | "green" | "purple" | "orange";
   subtitle?: string;
 }
-function StatCard({ title, value, icon: Icon, color, subtitle }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+  subtitle,
+}: StatCardProps) {
   const colorClasses = {
     blue: "bg-blue-50 text-blue-600 border-blue-200",
     green: "bg-green-50 text-green-600 border-green-200",
@@ -219,7 +239,12 @@ interface QuickActionButtonProps {
   title: string;
   description: string;
 }
-function QuickActionButton({ href, icon: Icon, title, description }: QuickActionButtonProps) {
+function QuickActionButton({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: QuickActionButtonProps) {
   return (
     <Link
       href={href}
