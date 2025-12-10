@@ -1,8 +1,16 @@
 "use client";
 import { useState } from "react";
-import { 
-  Store, User, Mail, Phone, MapPin, FileText, 
-  CheckCircle, XCircle, Loader2, Calendar 
+import {
+  Store,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Calendar,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import Image from "next/image";
@@ -29,7 +37,11 @@ interface Props {
   onApproved: () => void;
   onRejected: () => void;
 }
-export default function SellerApprovalCard({ seller, onApproved, onRejected }: Props) {
+export default function SellerApprovalCard({
+  seller,
+  onApproved,
+  onRejected,
+}: Props) {
   const [loading, setLoading] = useState(false);
   async function handleApprove() {
     const result = await Swal.fire({
@@ -133,10 +145,14 @@ export default function SellerApprovalCard({ seller, onApproved, onRejected }: P
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Store className="w-5 h-5 text-red-500" />
-            <h3 className="text-xl font-bold text-gray-800">{seller.store_name}</h3>
+            <h3 className="text-xl font-bold text-gray-800">
+              {seller.store_name}
+            </h3>
           </div>
           {seller.store_description && (
-            <p className="text-sm text-gray-600 ml-7">{seller.store_description}</p>
+            <p className="text-sm text-gray-600 ml-7">
+              {seller.store_description}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -171,14 +187,18 @@ export default function SellerApprovalCard({ seller, onApproved, onRejected }: P
             <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
             <div>
               <p className="text-xs text-gray-500">Alamat</p>
-              <p className="font-semibold text-gray-800 text-sm">{fullAddress}</p>
+              <p className="font-semibold text-gray-800 text-sm">
+                {fullAddress}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
             <div>
               <p className="text-xs text-gray-500">No. KTP</p>
-              <p className="font-semibold text-gray-800">{seller.pic_ktp_number}</p>
+              <p className="font-semibold text-gray-800">
+                {seller.pic_ktp_number}
+              </p>
             </div>
           </div>
         </div>
@@ -187,11 +207,10 @@ export default function SellerApprovalCard({ seller, onApproved, onRejected }: P
             <div>
               <p className="text-xs text-gray-500 mb-2">Foto Penjual</p>
               <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                <Image
+                <img
                   src={seller.pic_photo_url}
                   alt="Foto Penjual"
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>
@@ -200,11 +219,10 @@ export default function SellerApprovalCard({ seller, onApproved, onRejected }: P
             <div>
               <p className="text-xs text-gray-500 mb-2">Foto KTP</p>
               <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                <Image
+                <img
                   src={seller.pic_ktp_url}
                   alt="Foto KTP"
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>

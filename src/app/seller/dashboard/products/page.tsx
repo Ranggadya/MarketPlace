@@ -3,9 +3,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { createClient } from "@supabase/supabase-js";
-import { 
-  Package, Plus, Edit, Trash2, Eye, EyeOff, 
-  Loader2, Search 
+import {
+  Package,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -38,7 +44,7 @@ export default function SellerProductsPage() {
   async function loadProducts() {
     try {
       setLoading(true);
-      
+
       // ⭐ RLS automatically filters by seller_id = auth.uid()
       const { data, error } = await supabase
         .from("products")
@@ -63,7 +69,7 @@ export default function SellerProductsPage() {
   }
   async function toggleProductStatus(productId: string, currentStatus: string) {
     const newStatus = currentStatus === "active" ? "inactive" : "active";
-    
+
     const { error } = await supabase
       .from("products")
       .update({ status: newStatus })
@@ -79,7 +85,9 @@ export default function SellerProductsPage() {
       Swal.fire({
         icon: "success",
         title: "Status Diupdate",
-        text: `Produk ${newStatus === "active" ? "diaktifkan" : "dinonaktifkan"}`,
+        text: `Produk ${
+          newStatus === "active" ? "diaktifkan" : "dinonaktifkan"
+        }`,
         timer: 1500,
         showConfirmButton: false,
       });
@@ -222,11 +230,10 @@ function ProductCard({ product, onToggleStatus, onDelete }: ProductCardProps) {
     <div className="bg-white rounded-xl shadow-md p-4 flex items-center gap-4">
       {/* Image */}
       <div className="relative w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-        <Image
+        <img
           src={imageUrl}
           alt={product.name}
-          fill
-          className="object-cover"
+          className="w-full h-full object-cover"
         />
       </div>
       {/* Info */}
