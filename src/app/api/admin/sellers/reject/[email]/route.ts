@@ -3,13 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { sendRejectionEmail } from "@/lib/email";
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ email: string }> }  // ✅ FIXED: Now a Promise
+  { params }: { params: Promise<{ email: string }> }
 ) {
   try {
-    // ✅ FIXED: Await params before accessing
+    // ✅ Await params before accessing
     const { email } = await params;
     const sellerEmail = decodeURIComponent(email);
-    
     const body = await req.json();
     const reason = body.reason || "Tidak memenuhi persyaratan";
     // ===================================
@@ -51,7 +50,8 @@ export async function POST(
       .update({
         status: "rejected",
         rejection_reason: reason,
-        rejected_at: new Date().toISOString(),
+        // ✅ REMOVED: rejected_at (column doesn't exist in database schema)
+        // NOTE: updated_at will automatically update via database trigger
       })
       .eq("pic_email", sellerEmail) // ⭐ USE EMAIL (not id)
       .select()
