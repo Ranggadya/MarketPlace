@@ -32,26 +32,22 @@ export async function POST(req: Request) {
       { expiresIn: "2h" }
     );
 
-    const cookieStore = await cookies();
-    cookieStore.set("seller_token", token, {
+    const response = NextResponse.json({
+      success: true,
+      message: "Login berhasil.",
+    });
+
+    response.cookies.set("seller_token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "strict",
       path: "/",
-      maxAge: 2 * 60 * 60, 
+      maxAge: 2 * 60 * 60,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Login berhasil.",
-    });
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Terjadi kesalahan server.";
-
-    return NextResponse.json(
-      { success: false, message },
-      { status: 500 }
-    );
+    return response;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan server.";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

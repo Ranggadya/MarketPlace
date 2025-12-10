@@ -7,6 +7,7 @@ const controller = new SellerController();
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
+
     const photo = form.get("picPhotoPath") as File | null;
     const ktp = form.get("picKtpFilePath") as File | null;
 
@@ -16,10 +17,13 @@ export async function POST(req: Request) {
     async function uploadFile(file: File, prefix: string) {
       const ext = file.name.split(".").pop() || "file";
       const filename = `${prefix}-${Date.now()}.${ext}`;
+      const buffer = await file.arrayBuffer();
 
       const { data, error } = await supabase.storage
         .from("seller-files")
-        .upload(filename, file);
+        .upload(filename, buffer, {
+          contentType: file.type,
+        });
 
       if (error) throw new Error(error.message);
 
@@ -30,34 +34,30 @@ export async function POST(req: Request) {
       return urlData.publicUrl;
     }
 
-    if (photo) {
-      photoUrl = await uploadFile(photo, "photo");
-    }
-
-    if (ktp) {
-      ktpUrl = await uploadFile(ktp, "ktp");
-    }
+    if (photo) photoUrl = await uploadFile(photo, "photo");
+    if (ktp) ktpUrl = await uploadFile(ktp, "ktp");
 
     const body = {
-      storeName: String(form.get("storeName") || ""),
+      storeName: form.get("storeName")?.toString() || "",
       storeDescription: form.get("storeDescription")?.toString() || undefined,
 
-      picName: String(form.get("picName") || ""),
-      picPhone: String(form.get("picPhone") || ""),
-      picEmail: String(form.get("picEmail") || ""),
+      picName: form.get("picName")?.toString() || "",
+      picPhone: form.get("picPhone")?.toString() || "",
+      picEmail: form.get("picEmail")?.toString() || "",
 
-      picStreet: String(form.get("picStreet") || ""),
-      picRT: String(form.get("picRT") || ""),
-      picRW: String(form.get("picRW") || ""),
-      picVillage: String(form.get("picVillage") || ""),
-      picCity: String(form.get("picCity") || ""),
-      picProvince: String(form.get("picProvince") || ""),
+      picStreet: form.get("picStreet")?.toString() || "",
+      picRT: form.get("picRT")?.toString() || "",
+      picRW: form.get("picRW")?.toString() || "",
+      picVillage: form.get("picVillage")?.toString() || "",
+      picCity: form.get("picCity")?.toString() || "",
+      picProvince: form.get("picProvince")?.toString() || "",
 
-      picKtpNumber: String(form.get("picKtpNumber") || ""),
+      picKtpNumber: form.get("picKtpNumber")?.toString() || "",
 
       picPhotoPath: photoUrl,
       picKtpFilePath: ktpUrl,
-      password: String(form.get("password") || "")
+
+      password: form.get("password")?.toString() || "",
     };
 
     const result = await controller.register(body);
@@ -66,22 +66,8 @@ export async function POST(req: Request) {
       { success: true, message: "Registrasi berhasil", data: result },
       { status: 201 }
     );
-
-  } catch (err: unknown) {
-    console.error("❌ REGISTER ERROR:", err);
-
-    let message = "Terjadi kesalahan server";
-
-    if (err instanceof Error) {
-      message = err.message;
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        message,
-      },
-      { status: 400 }
-    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan server";
+    return NextResponse.json({ success: false, message }, { status: 400 });
   }
 }

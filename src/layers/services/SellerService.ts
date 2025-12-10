@@ -7,12 +7,8 @@ import { Mailer } from "@/lib/mailer/resend";
 export class SellerService {
   private repo = new SellerRepository();
 
-  /**
-   * Register Seller (PENDING)
-   */
   async register(payload: SellerInput) {
     const parsed = SellerValidator.safeParse(payload);
-
     if (!parsed.success) {
       const message = parsed.error.issues.map(i => i.message).join(", ");
       throw new Error(message);
@@ -20,16 +16,11 @@ export class SellerService {
 
     const data = parsed.data;
 
-    // Cek email unik
     const exists = await this.repo.findByEmail(data.picEmail);
-    if (exists) {
-      throw new Error("Email sudah digunakan.");
-    }
+    if (exists) throw new Error("Email sudah digunakan.");
 
-    // Hash password
     const hashedPassword = await Password.hashPassword(data.password);
 
-    // Buat entity seller
     const entity = new SellerEntity({
       ...data,
       passwordHash: hashedPassword,
@@ -39,18 +30,11 @@ export class SellerService {
       throw new Error("Validasi entity gagal.");
     }
 
-    // Simpan ke database dengan toObject()
     const saveRecord = await this.repo.create(entity);
-
-    // Hilangkan password dari response
     const { password, ...safeRecord } = saveRecord;
-
     return safeRecord;
   }
 
-  /**
-   * Login Seller
-   */
   async login(email: string, password: string) {
     const seller = await this.repo.findByEmail(email);
     if (!seller) throw new Error("Email tidak ditemukan.");
@@ -66,18 +50,12 @@ export class SellerService {
     return safeRecord;
   }
 
-  /**
-   * ADMIN — Verifikasi Seller (Accept / Reject)
-   */
   async verify(payload: { id: string; action: "ACCEPT" | "REJECT"; reason?: string }) {
     const seller = await this.repo.findById(payload.id);
     if (!seller) throw new Error("Seller tidak ditemukan.");
 
-    // Jika ACCEPT
     if (payload.action === "ACCEPT") {
       const updated = await this.repo.updateStatus(payload.id, "ACTIVE");
-
-      // Kirim email persetujuan
       await Mailer.sendSellerApproved({
         to: seller.pic_email,
         name: seller.pic_name,
@@ -87,9 +65,8 @@ export class SellerService {
       return safe;
     }
 
-    // Jika REJECT
     if (payload.action === "REJECT") {
-      if (!payload.reason) {
+      if (!payload.reason || payload.reason.trim() === "") {
         throw new Error("Alasan penolakan wajib diisi.");
       }
 
@@ -123,6 +100,4 @@ export class SellerService {
     const { password, ...safe } = seller;
     return safe;
   }
-
-
 }

@@ -1,13 +1,6 @@
-// ==============================
-// Seller Types & Entity (Final)
-// ==============================
 
 export type SellerStatus = "PENDING" | "ACTIVE" | "REJECTED";
 
-/**
- * Props yang diterima saat membuat SellerEntity (input dari service)
- * Password harus sudah melalui hashing (passwordHash).
- */
 export type SellerProps = {
   storeName: string;
   storeDescription?: string;
@@ -30,10 +23,6 @@ export type SellerProps = {
   passwordHash: string;
 };
 
-/**
- * Record lengkap sesuai struktur tabel Supabase.
- * Berguna untuk repository & mapping data dari database.
- */
 export type SellerRecord = {
   id: string;
 
@@ -62,9 +51,6 @@ export type SellerRecord = {
   updated_at: string;
 };
 
-/**
- * Seller Entity — Domain Model
- */
 export class SellerEntity {
   id?: string;
 
@@ -98,10 +84,6 @@ export class SellerEntity {
     this.status = "PENDING";
   }
 
-  /**
-   * Validasi field wajib terisi.
-   * Bisa dikembangkan dengan regex email validation.
-   */
   validate(): boolean {
     const required = [
       this.storeName,
@@ -121,10 +103,6 @@ export class SellerEntity {
     return required.every((r) => r && r.toString().trim().length > 0);
   }
 
-  /**
-   * Mengubah domain entity (camelCase)
-   * menjadi bentuk snake_case untuk Supabase insert/update.
-   */
   toObject() {
     return {
       store_name: this.storeName,

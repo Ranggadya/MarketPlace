@@ -3,11 +3,13 @@ import { SellerController } from "@/layers/controllers/SellerController";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const controller = new SellerController();
-    const result = await controller.detail(params.id);
+    const result = await controller.detail(id);
 
     if (!result.success) {
       return NextResponse.json(result, { status: 404 });
