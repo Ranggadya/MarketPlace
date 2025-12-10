@@ -2,6 +2,36 @@ import { supabase } from "@/lib/supabase";
 import { ReviewDB, CreateReviewData, mapReviewDBToGuestReview, GuestReview } from "@/lib/models/Review";
 export class ReviewRepository {
   /**
+   * ✅ NEW: Check apakah email sudah pernah review produk ini
+   * Digunakan untuk validasi sebelum insert (defense in depth)
+   * 
+   * @param productId - UUID dari product
+   * @param guestEmail - Email guest (case-insensitive)
+   * @returns true jika sudah pernah review, false jika belum
+   */
+  async checkExistingReview(productId: string, guestEmail: string): Promise<boolean> {
+    try {
+      const normalizedEmail = guestEmail.trim().toLowerCase();
+      
+      const { data, error } = await supabase
+        .from("guest_reviews")
+        .select("id")
+        .eq("product_id", productId)
+        .ilike("guest_email", normalizedEmail) // Case-insensitive match
+        .limit(1);
+      if (error) {
+        console.error("Error checking existing review:", error);
+        // Jika error, asumsikan belum ada (fail-safe ke constraint)
+        return false;
+      }
+      return data && data.length > 0;
+    } catch (error) {
+      console.error("ReviewRepository.checkExistingReview error:", error);
+      // Jika error, asumsikan belum ada (fail-safe ke constraint)
+      return false;
+    }
+  }
+  /**
    * Get all reviews untuk product tertentu (sorted by newest first)
    * @param productId - UUID dari product
    * @returns Array of GuestReview
@@ -26,19 +56,22 @@ export class ReviewRepository {
   }
   /**
    * Create new guest review
+   * ✅ UPDATED: Enhanced error handling untuk duplicate constraint violation
+   * 
    * @param reviewData - Data review dari form
    * @returns Created review object
+   * @throws Error jika duplikasi terdeteksi atau database error
    */
   async create(reviewData: CreateReviewData): Promise<GuestReview> {
     try {
       // Prepare data untuk insert (convert camelCase ke snake_case)
       const insertData = {
         product_id: reviewData.productId,
-        guest_name: reviewData.guestName,
-        guest_email: reviewData.guestEmail,
-        guest_phone: reviewData.guestPhone,
+        guest_name: reviewData.guestName.trim(),
+        guest_email: reviewData.guestEmail.trim().toLowerCase(), // Normalize email
+        guest_phone: reviewData.guestPhone.trim(),
         rating: reviewData.rating,
-        comment: reviewData.comment,
+        comment: reviewData.comment.trim(),
       };
       const { data, error } = await supabase
         .from("guest_reviews")
@@ -47,12 +80,29 @@ export class ReviewRepository {
         .single();
       if (error) {
         console.error("Error creating review:", error);
+        // ✅ ENHANCED: Check if error is duplicate constraint violation
+        // PostgreSQL error code 23505 = unique_violation
+        if (error.code === "23505") {
+          if (error.message.includes("guest_reviews_product_email_unique")) {
+            throw new Error(
+              "Anda sudah pernah memberikan ulasan untuk produk ini. " +
+              "Setiap email hanya dapat memberikan 1 ulasan per produk."
+            );
+          }
+          // Fallback untuk unique violation lainnya
+          throw new Error("Data duplikat terdeteksi. Silakan cek kembali.");
+        }
+        // Error lainnya
         throw new Error(`Database error: ${error.message}`);
+      }
+      if (!data) {
+        throw new Error("Gagal membuat review: Tidak ada data dikembalikan.");
       }
       // Map response ke Frontend interface
       return mapReviewDBToGuestReview(data as ReviewDB);
     } catch (error) {
       console.error("ReviewRepository.create error:", error);
+      // Re-throw error agar bisa di-handle di layer atas
       throw error;
     }
   }
@@ -79,6 +129,14 @@ export class ReviewRepository {
   }
   /**
    * Get average rating untuk product tertentu
+   * 
+   * ⚠️ DEPRECATED: This method fetches all ratings to app memory which is slow
+   * and prone to race conditions. Use RPC function submit_review_with_rating_sync
+   * for new code that needs to calculate/update ratings.
+   * 
+   * This method is still used by ProductService.getProductDetail() to display
+   * current ratings. Future optimization: read rating directly from products table.
+   * 
    * @param productId - UUID dari product
    * @returns Average rating (0-5)
    */

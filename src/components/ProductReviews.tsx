@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Star, AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,16 +26,72 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
   const [hoverRating, setHoverRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  
+  // ✅ NEW: State untuk tracking duplikasi
+  const [hasReviewed, setHasReviewed] = useState<boolean>(false);
+  const [checkingEmail, setCheckingEmail] = useState<boolean>(false);
+  // ✅ NEW: Load email from localStorage dan check duplikasi on mount
+  useEffect(() => {
+    // Try to get email from localStorage (convenience feature)
+    const savedEmail = localStorage.getItem("guest_review_email");
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+      checkIfEmailReviewed(savedEmail);
+    }
+  }, [reviews, productId]);
+  /**
+   * ✅ NEW: Helper function untuk check apakah email sudah review
+   */
+  const checkIfEmailReviewed = (email: string) => {
+    if (!email.trim()) {
+      setHasReviewed(false);
+      return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const alreadyReviewed = reviews.some(
+      review => review.guestEmail.toLowerCase() === normalizedEmail
+    );
+    
+    setHasReviewed(alreadyReviewed);
+    
+    if (alreadyReviewed) {
+      setSubmitMessage({
+        type: "error",
+        text: "Email ini sudah pernah memberikan ulasan untuk produk ini. Setiap email hanya dapat memberikan 1 ulasan per produk."
+      });
+    }
+  };
+  /**
+   * ✅ NEW: Auto-check saat user selesai input email (onBlur)
+   */
+  const handleEmailBlur = () => {
+    if (formData.email.trim()) {
+      setCheckingEmail(true);
+      // Simulate check delay (UI feedback)
+      setTimeout(() => {
+        checkIfEmailReviewed(formData.email);
+        setCheckingEmail(false);
+      }, 300);
+    }
+  };
   // Handle input change
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error message jika user mulai edit form
+    if (submitMessage?.type === "error" && name === "email") {
+      setSubmitMessage(null);
+      setHasReviewed(false);
+    }
   };
   // Handle rating click
   const handleRatingClick = (rating: number) => {
-    setFormData((prev) => ({ ...prev, rating }));
+    if (!hasReviewed) {
+      setFormData((prev) => ({ ...prev, rating }));
+    }
   };
   // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +101,15 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
     // Client-side validation
     if (!formData.name || !formData.email || !formData.phone || formData.rating === 0 || !formData.comment) {
       setSubmitMessage({ type: "error", text: "Mohon lengkapi semua field!" });
+      setIsSubmitting(false);
+      return;
+    }
+    // ✅ NEW: Double-check duplicate sebelum submit
+    if (hasReviewed) {
+      setSubmitMessage({ 
+        type: "error", 
+        text: "Email ini sudah pernah memberikan ulasan untuk produk ini." 
+      });
       setIsSubmitting(false);
       return;
     }
@@ -61,16 +126,32 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
       if (result.success) {
         setSubmitMessage({ type: "success", text: result.message });
         
+        // ✅ NEW: Save email to localStorage untuk convenience
+        localStorage.setItem("guest_review_email", formData.email);
+        
         // Reset form
         setFormData({
           name: "",
-          email: "",
+          email: formData.email, // Keep email for convenience
           phone: "",
           rating: 0,
           comment: "",
         });
+        
+        // Mark as reviewed
+        setHasReviewed(true);
+        
         // Auto-hide success message setelah 5 detik
-        setTimeout(() => setSubmitMessage(null), 5000);
+        setTimeout(() => {
+          setSubmitMessage(null);
+        }, 5000);
+        // ✅ NEW: Scroll to reviews list untuk lihat review baru
+        setTimeout(() => {
+          const reviewsSection = document.getElementById("reviews-list");
+          if (reviewsSection) {
+            reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 1000);
       } else {
         setSubmitMessage({ type: "error", text: result.message });
       }
@@ -114,9 +195,12 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
               key={index}
               type="button"
               onClick={() => handleRatingClick(starValue)}
-              onMouseEnter={() => setHoverRating(starValue)}
+              onMouseEnter={() => !hasReviewed && setHoverRating(starValue)}
               onMouseLeave={() => setHoverRating(0)}
-              className="focus:outline-none transition-transform hover:scale-110"
+              disabled={hasReviewed}
+              className={`focus:outline-none transition-transform ${
+                hasReviewed ? "cursor-not-allowed opacity-50" : "hover:scale-110 cursor-pointer"
+              }`}
             >
               <Star
                 className={`w-8 h-8 ${
@@ -143,7 +227,7 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
   return (
     <div className="space-y-8">
       {/* Reviews List Section */}
-      <Card>
+      <Card id="reviews-list">
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">
             Ulasan Produk ({reviewCount})
@@ -199,17 +283,37 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* ✅ NEW: Warning jika sudah pernah review */}
+          {hasReviewed && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900">
+                  Anda sudah memberikan ulasan untuk produk ini
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Setiap email hanya dapat memberikan 1 ulasan per produk. 
+                  Terima kasih atas feedback Anda!
+                </p>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Submit Message */}
             {submitMessage && (
               <div
-                className={`p-4 rounded-lg ${
+                className={`p-4 rounded-lg flex items-start gap-3 ${
                   submitMessage.type === "success"
                     ? "bg-green-50 text-green-800 border border-green-200"
                     : "bg-red-50 text-red-800 border border-red-200"
                 }`}
               >
-                {submitMessage.text}
+                {submitMessage.type === "success" ? (
+                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                )}
+                <p className="text-sm flex-1">{submitMessage.text}</p>
               </div>
             )}
             {/* Input Fields Grid */}
@@ -227,7 +331,8 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || hasReviewed}
+                  className={hasReviewed ? "bg-gray-50 cursor-not-allowed" : ""}
                 />
               </div>
               {/* Email */}
@@ -235,16 +340,31 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
                 <label htmlFor="email" className="text-sm font-medium text-gray-700">
                   Email <span className="text-primary">*</span>
                 </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  disabled={isSubmitting}
-                />
+                <div className="relative">
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    onBlur={handleEmailBlur}
+                    required
+                    disabled={isSubmitting || hasReviewed}
+                    className={hasReviewed ? "bg-gray-50 cursor-not-allowed" : ""}
+                  />
+                  {checkingEmail && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+                {hasReviewed && (
+                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Email ini sudah pernah review produk ini
+                  </p>
+                )}
               </div>
               {/* No HP */}
               <div className="space-y-2 md:col-span-2">
@@ -259,7 +379,8 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || hasReviewed}
+                  className={hasReviewed ? "bg-gray-50 cursor-not-allowed" : ""}
                 />
               </div>
             </div>
@@ -285,23 +406,30 @@ export default function ProductReviews({ productId, reviews, reviewCount }: Prod
               <Textarea
                 id="comment"
                 name="comment"
-                placeholder="Tulis pengalaman Anda dengan produk ini..."
+                placeholder="Tulis pengalaman Anda dengan produk ini... (minimal 10 karakter)"
                 value={formData.comment}
                 onChange={handleInputChange}
                 rows={5}
                 required
-                disabled={isSubmitting}
-                className="resize-none"
+                disabled={isSubmitting || hasReviewed}
+                className={`resize-none ${hasReviewed ? "bg-gray-50 cursor-not-allowed" : ""}`}
               />
+              <p className="text-xs text-gray-500">
+                {formData.comment.length}/10 karakter minimum
+              </p>
             </div>
             {/* Submit Button */}
             <Button
               type="submit"
               size="lg"
-              disabled={isSubmitting}
+              disabled={isSubmitting || hasReviewed || formData.comment.length < 10}
               className="w-full md:w-auto"
             >
-              {isSubmitting ? "Mengirim..." : "Kirim Ulasan"}
+              {hasReviewed 
+                ? "✓ Sudah Memberikan Ulasan" 
+                : isSubmitting 
+                ? "Mengirim Ulasan..." 
+                : "Kirim Ulasan"}
             </Button>
           </form>
         </CardContent>

@@ -1,31 +1,24 @@
 export interface SellerProps {
   storeName: string;
   storeDescription?: string;
-
   picName: string;
   picPhone: string;
   picEmail: string;
-
   picStreet: string;
   picRT: string;
   picRW: string;
   picVillage: string;
   picCity: string;
   picProvince: string;
-
   picKtpNumber: string;
-  picPhotoPath?: string;
-  picKtpFilePath?: string;
-
+  picPhotoPath?: string;  // Maps to pic_photo_url in DB
+  picKtpFilePath?: string; // Maps to pic_ktp_url in DB
   status: string;
   createdAt: string;
 }
-
 export type SellerCreateProps = Omit<SellerProps, "status" | "createdAt">;
-
 export class Seller {
   private props: SellerProps;
-
   constructor(data: SellerCreateProps) {
     this.props = {
       ...data,
@@ -33,7 +26,6 @@ export class Seller {
       createdAt: new Date().toISOString(),
     };
   }
-
   validate(): boolean {
     return !!(
       this.props.storeName &&
@@ -49,7 +41,6 @@ export class Seller {
       this.props.picKtpNumber
     );
   }
-
   toObject() {
     return this.props;
   }

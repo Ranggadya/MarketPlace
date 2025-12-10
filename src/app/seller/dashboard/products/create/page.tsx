@@ -1,620 +1,417 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { uploadProductImage } from "@/lib/uploadImage";
-
-// ==========================================
-// TypeScript Interfaces
-// ==========================================
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import Swal from 'sweetalert2';
+import { Upload, X, Loader2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 interface Category {
   id: string;
   name: string;
   slug: string;
 }
-
-interface FormData {
+interface ProductFormData {
   name: string;
-  price: string;
-  stock: string;
-  category_id: string;
-  condition: "Baru" | "Bekas";
-  weight: string;
   description: string;
+  price: number;
+  stock: number;
+  category_id: string;
 }
-
-// ==========================================
-// Main Component
-// ==========================================
 export default function CreateProductPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [uploadMethod, setUploadMethod] = useState<"file" | "link">("link");
-  const [linkInput, setLinkInput] = useState("");
+  const { user } = useAuth();
   
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    price: "",
-    stock: "",
-    category_id: "",
-    condition: "Baru",
-    weight: "",
-    description: "",
+  const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  
+  const [categories, setCategories] = useState<Category[]>([]);
+  
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: '',
+    description: '',
+    price: 0,
+    stock: 0,
+    category_id: ''
   });
-
-  // ==========================================
-  // Fetch Categories
-  // ==========================================
+  
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  // Fetch categories from database
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch("/api/categories", {
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) {
-            setCategories(json.data || []);
-          }
+        const response = await fetch('/api/categories');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
         }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
+        
+        const data = await response.json();
+        setCategories(data.categories || []);
+      } catch (error: any) {
+        console.error('Fetch categories error:', error);
+        // Fallback to default categories if API fails
+        setCategories([
+          { id: '1', name: 'Electronics', slug: 'electronics' },
+          { id: '2', name: 'Fashion', slug: 'fashion' },
+          { id: '3', name: 'Home & Garden', slug: 'home-garden' },
+          { id: '4', name: 'Sports & Outdoors', slug: 'sports-outdoors' },
+          { id: '5', name: 'Books & Media', slug: 'books-media' },
+          { id: '6', name: 'Toys & Games', slug: 'toys-games' },
+          { id: '7', name: 'Food & Beverage', slug: 'food-beverage' },
+          { id: '8', name: 'Health & Beauty', slug: 'health-beauty' },
+          { id: '9', name: 'Automotive', slug: 'automotive' },
+          { id: '10', name: 'Other', slug: 'other' }
+        ]);
+      } finally {
+        setLoadingCategories(false);
       }
     };
-
     fetchCategories();
   }, []);
-
-  // ==========================================
-  // Form Handlers
-  // ==========================================
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'price' || name === 'stock' ? parseFloat(value) || 0 : value
+    }));
   };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-
-    const files = Array.from(e.target.files);
-
-    if (imageUrls.length + files.length > 5) {
-      alert("Maksimal 5 foto per produk");
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalImages = imageFiles.length + files.length;
+    
+    if (totalImages > 5) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Terlalu Banyak Gambar',
+        text: 'Maksimal 5 gambar per produk'
+      });
       return;
     }
-
-    setUploading(true);
-
-    try {
-      for (const file of files) {
-        if (file.size > 2 * 1024 * 1024) {
-          alert(`File ${file.name} terlalu besar. Maksimal 2MB per foto.`);
-          continue;
-        }
-
-        const publicUrl = await uploadProductImage(file);
-        setImageUrls((prev) => [...prev, publicUrl]);
+    // Validate file types and sizes
+    const validFiles = files.filter(file => {
+      const isValidType = file.type.startsWith('image/');
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+      if (!isValidType) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Tipe File Tidak Valid',
+          text: `${file.name} bukan file gambar`
+        });
+        return false;
       }
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      alert("Gagal upload foto: " + (error instanceof Error ? error.message : "Unknown error"));
-    } finally {
-      setUploading(false);
-    }
+      if (!isValidSize) {
+        Swal.fire({
+          icon: 'error',
+          title: 'File Terlalu Besar',
+          text: `${file.name} melebihi batas 5MB`
+        });
+        return false;
+      }
+      return true;
+    });
+    // Create previews
+    const newPreviews: string[] = [];
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newPreviews.push(reader.result as string);
+        if (newPreviews.length === validFiles.length) {
+          setImagePreviews(prev => [...prev, ...newPreviews]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    setImageFiles(prev => [...prev, ...validFiles]);
   };
-
   const removeImage = (index: number) => {
-    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
-
-  const handleAddLink = () => {
-    if (!linkInput.trim()) {
-      alert("Masukkan URL gambar terlebih dahulu");
-      return;
-    }
-
-    if (imageUrls.length >= 5) {
-      alert("Maksimal 5 foto per produk");
-      return;
-    }
-
-    // Simple URL validation
+  const uploadImages = async (): Promise<string[]> => {
+    if (imageFiles.length === 0) return [];
+    setUploadingImages(true);
+    const uploadedUrls: string[] = [];
     try {
-      new URL(linkInput);
-      setImageUrls((prev) => [...prev, linkInput.trim()]);
-      setLinkInput("");
-    } catch {
-      alert("URL tidak valid. Pastikan URL lengkap dengan http:// atau https://");
+      for (const file of imageFiles) {
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_${file.name}`;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileName', fileName);
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+        const data = await response.json();
+        uploadedUrls.push(data.url);
+      }
+      return uploadedUrls;
+    } catch (error) {
+      console.error('Image upload error:', error);
+      throw error;
+    } finally {
+      setUploadingImages(false);
     }
   };
-
-  // ==========================================
-  // Form Validation
-  // ==========================================
-  const validateForm = (): string | null => {
-    if (!formData.name.trim()) {
-      return "Nama produk wajib diisi";
-    }
-    if (formData.name.trim().length < 3) {
-      return "Nama produk minimal 3 karakter";
-    }
-    if (!formData.category_id) {
-      return "Pilih kategori produk";
-    }
-    if (!formData.price || Number(formData.price) <= 0) {
-      return "Harga produk harus lebih dari 0";
-    }
-    if (Number(formData.price) > 999999999) {
-      return "Harga maksimal 999.999.999";
-    }
-    if (!formData.stock || Number(formData.stock) < 0) {
-      return "Stok produk tidak boleh negatif";
-    }
-    if (Number(formData.stock) > 999999) {
-      return "Stok maksimal 999.999";
-    }
-    if (formData.weight && Number(formData.weight) < 0) {
-      return "Berat produk tidak boleh negatif";
-    }
-    return null;
-  };
-
-  // ==========================================
-  // Submit Handler
-  // ==========================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (uploading) {
-      alert("Tunggu sampai upload foto selesai");
+    // Validation
+    if (!formData.name.trim()) {
+      Swal.fire('Error', 'Nama produk harus diisi', 'error');
       return;
     }
-
-    const validationError = validateForm();
-    if (validationError) {
-      alert(validationError);
+    if (!formData.description.trim()) {
+      Swal.fire('Error', 'Deskripsi produk harus diisi', 'error');
       return;
     }
-
+    if (formData.price <= 0) {
+      Swal.fire('Error', 'Harga harus lebih besar dari 0', 'error');
+      return;
+    }
+    if (formData.stock < 0) {
+      Swal.fire('Error', 'Stok tidak boleh negatif', 'error');
+      return;
+    }
+    if (!formData.category_id) {
+      Swal.fire('Error', 'Silakan pilih kategori', 'error');
+      return;
+    }
+    if (imageFiles.length === 0) {
+      Swal.fire('Error', 'Minimal 1 gambar produk diperlukan', 'error');
+      return;
+    }
     setLoading(true);
-
     try {
-      // Pastikan images adalah array valid atau null
-      const imagesArray = imageUrls.length > 0 ? [...imageUrls] : null;
-      
-      const payload = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || null,
-        price: Number(formData.price),
-        stock: Number(formData.stock),
-        category_id: formData.category_id,
-        condition: formData.condition,
-        weight: formData.weight ? Number(formData.weight) : 0,
-        status: "active",
-        images: imagesArray,
-      };
-
-      console.log("📦 Payload yang akan dikirim:", JSON.stringify(payload, null, 2));
-      console.log("🖼️ Images array:", imagesArray);
-      console.log("🔍 Type of images:", typeof imagesArray);
-      console.log("🔍 Is Array:", Array.isArray(imagesArray));
-
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      // Upload images first
+      const imageUrls = await uploadImages();
+      // Create product
+      const response = await fetch('/api/seller/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          stock: formData.stock,
+          category_id: formData.category_id,
+          images: imageUrls,
+          status: 'active'
+        })
       });
-
-      const responseText = await res.text();
-      console.log("📨 Raw response:", responseText);
-
-      let json;
-      try {
-        json = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("❌ Failed to parse response:", responseText);
-        throw new Error(`Server response tidak valid: ${responseText.substring(0, 100)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Gagal menambahkan produk');
       }
-
-      console.log("✅ Parsed response:", json);
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${json.message || responseText}`);
-      }
-
-      if (json.success) {
-        console.log("🎉 Product created successfully:", json.data);
-        alert("Produk berhasil ditambahkan!");
-        router.push("/seller/dashboard/products");
-        router.refresh();
-      } else {
-        throw new Error(json.message || "Gagal menambahkan produk");
-      }
-    } catch (error) {
-      console.error("❌ Error creating product:", error);
-      alert(
-        "Gagal menambahkan produk:\n" +
-          (error instanceof Error ? error.message : "Unknown error")
-      );
+      await Swal.fire({
+        icon: 'success',
+        title: 'Produk Berhasil Ditambahkan!',
+        text: 'Produk Anda telah berhasil ditambahkan',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      router.push('/seller/dashboard/products');
+    } catch (error: any) {
+      console.error('Create product error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menambahkan Produk',
+        text: error.message || 'Terjadi kesalahan'
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  // ==========================================
-  // Render UI
-  // ==========================================
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Tambah Produk Baru
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Lengkapi informasi produk Anda dengan detail
-              </p>
-            </div>
-            <Link
-              href="/seller/dashboard/products"
-              className="inline-flex items-center justify-center px-6 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Kembali
-            </Link>
-          </div>
+  if (loadingCategories) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="animate-spin mx-auto mb-4 text-red-500" size={48} />
+          <p className="text-gray-600">Memuat data...</p>
         </div>
       </div>
-
-      {/* Form Section */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Image Upload Card */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
-                Foto Produk
-              </label>
-              <p className="text-xs text-gray-500">
-                Maksimal 5 foto. Pilih metode upload yang Anda inginkan.
-              </p>
-            </div>
-
-            {/* Upload Method Toggle */}
-            <div className="flex gap-3 mb-6">
-              <button
-                type="button"
-                onClick={() => setUploadMethod("link")}
-                className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${
-                  uploadMethod === "link"
-                    ? "bg-red-600 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                Link URL
-              </button>
-              <button
-                type="button"
-                onClick={() => setUploadMethod("file")}
-                className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${
-                  uploadMethod === "file"
-                    ? "bg-red-600 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Upload File
-              </button>
-            </div>
-
-            {/* Link Input Method */}
-            {uploadMethod === "link" && (
-              <div className="mb-6">
-                <div className="flex gap-3">
-                  <input
-                    type="url"
-                    value={linkInput}
-                    onChange={(e) => setLinkInput(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="flex-1 border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddLink();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddLink}
-                    disabled={imageUrls.length >= 5}
-                    className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    Tambah
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Contoh: https://i.imgur.com/abc123.jpg atau https://example.com/product.png
-                </p>
-              </div>
-            )}
-
-            {/* Image Preview Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {imageUrls.map((url, index) => (
-                <div
-                  key={index}
-                  className="relative aspect-square border-2 border-gray-200 rounded-lg overflow-hidden group bg-gray-50"
-                >
-                  <Image
-                    src={url}
-                    alt={`Product image ${index + 1}`}
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
-                    className="object-cover"
-                    unoptimized
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 shadow-lg"
-                    title="Hapus foto"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  {/* Image index badge */}
-                  <div className="absolute top-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded font-medium">
-                    {index + 1}
-                  </div>
-                </div>
-              ))}
-
-              {imageUrls.length < 5 && uploadMethod === "file" && (
-                <label className="border-2 border-dashed border-gray-300 rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-red-400 transition-all group">
-                  {uploading ? (
-                    <div className="flex flex-col items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-2"></div>
-                      <span className="text-xs text-gray-500">Uploading...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-10 h-10 text-gray-400 group-hover:text-red-500 transition-colors mb-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      <span className="text-xs text-gray-500 font-medium">
-                        Tambah Foto
-                      </span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageUpload}
-                    disabled={uploading}
-                  />
-                </label>
-              )}
-            </div>
-
-            {/* Debug Info (for development) */}
-            {imageUrls.length > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs font-semibold text-blue-900 mb-1">
-                  Debug Info - Images Array:
-                </p>
-                <code className="text-xs text-blue-700 break-all">
-                  {JSON.stringify(imageUrls)}
-                </code>
-              </div>
-            )}
-          </div>
-
-          {/* ... Rest of the form (Product Information, Buttons, etc.) ... */}
-          {/* Product Information Card */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-3">
-              Informasi Produk
-            </h2>
-
+    );
+  }
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-3xl mx-auto px-4">
+        {/* Back Button */}
+        <Link 
+          href="/seller/dashboard/products"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>Kembali ke Daftar Produk</span>
+        </Link>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h1 className="text-2xl font-bold mb-6 text-gray-800">Tambah Produk Baru</h1>
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Product Name */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nama Produk <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="name"
-                required
                 value={formData.name}
-                onChange={handleChange}
-                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                placeholder="Contoh: Samsung Galaxy S23 Ultra 256GB"
-                maxLength={200}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="Masukkan nama produk"
+                required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.name.length}/200 karakter
-              </p>
             </div>
-
-            {/* Category & Condition */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Kategori <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="category_id"
-                  required
-                  value={formData.category_id}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 px-4 py-2.5 rounded-lg bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                >
-                  <option value="">Pilih Kategori</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Kondisi <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="condition"
-                  required
-                  value={formData.condition}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 px-4 py-2.5 rounded-lg bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                >
-                  <option value="Baru">Baru</option>
-                  <option value="Bekas">Bekas</option>
-                </select>
-              </div>
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="Deskripsikan produk Anda..."
+                required
+              />
             </div>
-
-            {/* Price, Stock, Weight */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Price and Stock */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Harga <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Harga (IDR) <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
-                    Rp
-                  </span>
-                  <input
-                    type="number"
-                    name="price"
-                    required
-                    value={formData.price}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 pl-11 pr-4 py-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                    placeholder="0"
-                    min="0"
-                    max="999999999"
-                  />
-                </div>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="0"
+                  required
+                />
               </div>
-
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Stok <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   name="stock"
-                  required
                   value={formData.stock}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                  placeholder="0"
+                  onChange={handleInputChange}
                   min="0"
-                  max="999999"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Berat (gram)
-                </label>
-                <input
-                  type="number"
-                  name="weight"
-                  value={formData.weight}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="0"
-                  min="0"
+                  required
                 />
               </div>
             </div>
-
-            {/* Description */}
+            {/* Category */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Deskripsi Produk
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Kategori <span className="text-red-500">*</span>
               </label>
-              <textarea
-                name="description"
-                rows={6}
-                value={formData.description}
-                onChange={handleChange}
-                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
-                placeholder="Jelaskan detail produk, spesifikasi, kondisi, kelengkapan, dll..."
-                maxLength={2000}
-              ></textarea>
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.description.length}/2000 karakter
+              <select
+                name="category_id"
+                value={formData.category_id}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+              >
+                <option value="">Pilih kategori</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Images Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gambar Produk <span className="text-red-500">*</span> (Maks 5 gambar, 5MB per gambar)
+              </label>
+              <div className="space-y-4">
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-5 gap-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative aspect-square">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg border-2 border-red-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Upload Button */}
+                {imagePreviews.length < 5 && (
+                  <div className="grid grid-cols-5 gap-4">
+                    <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition">
+                      <Upload className="text-gray-400 mb-2" size={24} />
+                      <span className="text-xs text-gray-500 text-center">Tambah Gambar</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                {imagePreviews.length}/5 gambar
               </p>
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
-            <Link
-              href="/seller/dashboard/products"
-              className="inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={loading || uploading}
-              className="inline-flex items-center justify-center px-8 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Simpan Produk
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+            {/* Submit Buttons */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={loading || uploadingImages}
+                className="flex-1 bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="animate-spin" size={20} />
+                    {uploadingImages ? 'Mengupload Gambar...' : 'Menambahkan Produk...'}
+                  </span>
+                ) : (
+                  'Tambah Produk'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                disabled={loading}
+                className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 transition"
+              >
+                Batal
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

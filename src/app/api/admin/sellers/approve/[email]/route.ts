@@ -1,0 +1,146 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { sendApprovalEmail } from "@/lib/email";
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ email: string }> }  // ✅ FIXED: Now a Promise
+) {
+  try {
+    // ✅ FIXED: Await params before accessing
+    const { email } = await params;
+    const sellerEmail = decodeURIComponent(email);
+    // ===================================
+    // 1. INIT SUPABASE ADMIN CLIENT
+    // ===================================
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+    // ===================================
+    // 2. GET SELLER DATA BY EMAIL
+    // ===================================
+    const { data: seller, error: fetchError } = await supabase
+      .from("sellers")
+      .select("*")
+      .eq("pic_email", sellerEmail)
+      .single();
+    if (fetchError || !seller) {
+      return NextResponse.json(
+        { success: false, message: "Seller tidak ditemukan" },
+        { status: 404 }
+      );
+    }
+    if (seller.status !== "pending") {
+      return NextResponse.json(
+        { success: false, message: `Seller sudah ${seller.status}` },
+        { status: 400 }
+      );
+    }
+    // ===================================
+    // 3. GENERATE RANDOM PASSWORD
+    // ===================================
+    const password = generatePassword(12);
+    console.log("🔐 Generated password for:", seller.pic_email);
+    // ===================================
+    // 4. CREATE SUPABASE AUTH USER
+    // ===================================
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: seller.pic_email,
+      password: password,
+      email_confirm: true, // Auto-confirm
+      user_metadata: {
+        name: seller.pic_name,
+        role: "seller",
+        store_name: seller.store_name,
+      },
+    });
+    if (authError || !authData.user) {
+      console.error("❌ Auth user creation failed:", authError);
+      return NextResponse.json(
+        {
+          success: false,
+          message: authError?.message || "Gagal membuat akun auth",
+        },
+        { status: 400 }
+      );
+    }
+    const userId = authData.user.id;
+    console.log("✅ Auth user created with ID:", userId);
+    // ===================================
+    // 5. UPDATE SELLERS TABLE (SET ID + STATUS ACTIVE)
+    // ===================================
+    const { data: updated, error: updateError } = await supabase
+      .from("sellers")
+      .update({
+        id: userId, // ⭐ SET AUTH USER ID
+        status: "active", // ⭐ STATUS = ACTIVE (approved)
+        approved_at: new Date().toISOString(),
+        generated_password: password,
+      })
+      .eq("pic_email", sellerEmail) // ⭐ USE EMAIL (not id, because id is still null)
+      .select()
+      .single();
+    if (updateError) {
+      console.error("❌ Seller update error:", updateError);
+      
+      // Rollback: Delete auth user
+      await supabase.auth.admin.deleteUser(userId);
+      
+      return NextResponse.json(
+        { success: false, message: `Gagal update seller: ${updateError.message}` },
+        { status: 400 }
+      );
+    }
+    console.log("✅ Seller approved:", updated);
+    // ===================================
+    // 6. SEND APPROVAL EMAIL
+    // ===================================
+    try {
+      await sendApprovalEmail({
+        to: seller.pic_email,
+        name: seller.pic_name,
+        storeName: seller.store_name,
+        email: seller.pic_email,
+        password: password,
+      });
+      console.log("✅ Approval email sent to:", seller.pic_email);
+    } catch (emailError) {
+      console.error("❌ Email send error:", emailError);
+      // Don't fail the approval if email fails
+    }
+    return NextResponse.json({
+      success: true,
+      result: updated,
+      message: "Seller berhasil disetujui dan email telah dikirim",
+    });
+  } catch (err) {
+    console.error("❌ Approve API Error:", err);
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ success: false, message: msg }, { status: 500 });
+  }
+}
+// ===================================
+// HELPER: GENERATE RANDOM PASSWORD
+// ===================================
+function generatePassword(length: number): string {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  
+  // Ensure at least one uppercase, one lowercase, one number, one special char
+  password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+  password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
+  password += "0123456789"[Math.floor(Math.random() * 10)];
+  password += "!@#$%^&*"[Math.floor(Math.random() * 8)];
+  
+  // Fill the rest
+  for (let i = password.length; i < length; i++) {
+    password += charset[Math.floor(Math.random() * charset.length)];
+  }
+  
+  // Shuffle
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+}

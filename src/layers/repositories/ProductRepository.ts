@@ -2,80 +2,189 @@ import { createClient } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import { ProductDB } from "@/lib/models/Product";
 import { getCategoryDBName } from "@/lib/constants";
-
 export interface ProductFilters {
   keyword?: string;
   location?: string;
   category?: string;
 }
-
 export default class ProductRepository {
   /**
-   * Find all products dengan filters (from rajwaa)
+   * Helper: Get category ID by slug/name
+   * Returns null if not found
+   * @private
+   */
+  private async getCategoryIdBySlug(slug: string): Promise<string | null> {
+    try {
+      const dbName = getCategoryDBName(slug);
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("name", dbName)
+        .single();
+      
+      if (error) {
+        console.warn(`Category not found: ${slug}`, error);
+        return null;
+      }
+      return data?.id || null;
+    } catch (error) {
+      console.error("Error fetching category ID:", error);
+      return null;
+    }
+  }
+  /**
+   * Find all products with optional filters
+   * ✅ FIXED: Fetches seller data separately to show province/city correctly
+   * ✅ FIXED: Category filter now uses category_id instead of nested relation
    */
   async findAll(filters: ProductFilters = {}): Promise<ProductDB[]> {
+    // ============================================================
+    // STEP 1: Build base query for products with categories
+    // ============================================================
     let query = supabase
       .from("products")
       .select(`
         *,
-        sellers!inner ( store_name, pic_city ),
-        categories!inner ( name )
-      `);
-
+        categories ( name )
+      `)
+      .eq("status", "active"); // Only show active products
+    // ============================================================
+    // STEP 2: Apply keyword filter (product name)
+    // ============================================================
     if (filters.keyword) {
       query = query.ilike("name", `%${filters.keyword}%`);
     }
-
-    if (filters.location) {
-      query = query.ilike("sellers.pic_city", `%${filters.location}%`);
-    }
-
+    // ============================================================
+    // STEP 3: Apply category filter - FIXED to use category_id
+    // ============================================================
     if (filters.category && filters.category !== "all") {
-      const dbCategoryName = getCategoryDBName(filters.category);
-      query = query.eq("categories.name", dbCategoryName);
+      const categoryId = await this.getCategoryIdBySlug(filters.category);
+      if (categoryId) {
+        query = query.eq("category_id", categoryId);
+      } else {
+        console.warn(`Category "${filters.category}" not found, showing all products`);
+      }
     }
-
-    const { data, error } = await query;
-
+    // ============================================================
+    // STEP 4: Execute products query
+    // ============================================================
+    const { data: products, error } = await query;
     if (error) {
+      console.error("Error fetching products:", error);
       throw new Error(`Database error: ${error.message}`);
     }
-
-    return data || [];
+    if (!products || products.length === 0) {
+      return [];
+    }
+    // ============================================================
+    // STEP 5: Extract unique seller IDs from products
+    // ============================================================
+    const sellerIds = [...new Set(
+      products
+        .map(p => p.seller_id)
+        .filter(id => id != null)
+    )];
+    if (sellerIds.length === 0) {
+      // No sellers to fetch, return products as-is (will show "Unknown")
+      return products as ProductDB[];
+    }
+    // ============================================================
+    // STEP 6: Batch fetch all sellers in ONE query (performance!)
+    // ============================================================
+    const { data: sellers, error: sellerError } = await supabase
+      .from("sellers")
+      .select("id, store_name, pic_city, pic_province, pic_phone")
+      .in("id", sellerIds)
+      .eq("status", "active");
+    if (sellerError) {
+      console.warn("Error fetching sellers, continuing without seller data:", sellerError);
+      // Graceful degradation: continue without seller data
+      return products as ProductDB[];
+    }
+    // ============================================================
+    // STEP 7: Create seller lookup map for O(1) access
+    // ============================================================
+    const sellerMap = new Map(
+      (sellers || []).map(s => [s.id, s])
+    );
+    // ============================================================
+    // STEP 8: Attach seller data to each product
+    // ============================================================
+    const productsWithSellers = products.map(product => ({
+      ...product,
+      sellers: sellerMap.get(product.seller_id) || {
+        store_name: "Toko Tidak Tersedia",
+        pic_city: "Unknown",
+        pic_province: "Unknown",
+        pic_phone: null,
+      }
+    }));
+    // ============================================================
+    // STEP 9: Apply location filter (city OR province)
+    // Now we have seller data, so location filter can work!
+    // ============================================================
+    if (filters.location) {
+      const locationLower = filters.location.toLowerCase();
+      return productsWithSellers.filter(p => 
+        p.sellers?.pic_city?.toLowerCase().includes(locationLower) ||
+        p.sellers?.pic_province?.toLowerCase().includes(locationLower)
+      ) as ProductDB[];
+    }
+    return productsWithSellers as ProductDB[];
   }
-
   /**
-   * Find product by ID dengan JOIN sellers & categories (merged from both)
+   * Find product by ID with seller info
+   * ⚠️ FIXED: Fetch seller separately (no FK constraint)
    */
   async findById(id: string): Promise<ProductDB | null> {
     try {
-      const { data, error } = await supabase
+      // Step 1: Fetch product with category
+      const { data: product, error: productError } = await supabase
         .from("products")
         .select(`
           *,
-          sellers!inner ( store_name, pic_city, pic_phone ),
-          categories!inner ( name )
+          categories ( name )
         `)
         .eq("id", id)
         .single();
-
-      if (error) {
-        if (error.code === "PGRST116") {
+      if (productError) {
+        if (productError.code === "PGRST116") {
           // Not found error
           return null;
         }
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${productError.message}`);
       }
-
-      return data as ProductDB;
+      // Step 2: Fetch seller info separately if seller_id exists
+      if (product.seller_id) {
+        const { data: seller, error: sellerError } = await supabase
+          .from("sellers")
+          .select("store_name, pic_city, pic_province, pic_phone")
+          .eq("id", product.seller_id)
+          .eq("status", "active") // Only active sellers
+          .single();
+        if (!sellerError && seller) {
+          // Attach seller info to product
+          (product as any).sellers = seller;
+        } else {
+          // Seller not found or not active
+          console.warn(`Seller ${product.seller_id} not found or not active`);
+          (product as any).sellers = {
+            store_name: "Toko Tidak Aktif",
+            pic_city: "Unknown",
+            pic_province: "Unknown",
+            pic_phone: null,
+          };
+        }
+      }
+      return product as ProductDB;
     } catch (error) {
       console.error("ProductRepository.findById error:", error);
       throw error;
     }
   }
-
   /**
-   * Get products by seller ID (from main)
+   * Get products by seller ID (for seller dashboard)
+   * Uses direct query (no join needed)
    */
   async getBySellerId(sellerId: string) {
     try {
@@ -84,11 +193,7 @@ export default class ProductRepository {
         .from("products")
         .select(`
           *,
-          categories!category_id (
-            id,
-            name,
-            slug
-          )
+          categories ( id, name, slug )
         `)
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
@@ -104,49 +209,76 @@ export default class ProductRepository {
       return [];
     }
   }
-
   /**
-   * Create new product (from main)
+   * Create new product
+   * ⚠️ Validates seller_id exists and is active before insert
    */
   async create(payload: any) {
     // Validate seller_id exists
     if (!payload.seller_id) {
       throw new Error("seller_id is required and cannot be null");
     }
-
+    // Verify seller is active
+    const { data: seller, error: sellerError } = await supabase
+      .from("sellers")
+      .select("status")
+      .eq("id", payload.seller_id)
+      .single();
+    if (sellerError || !seller) {
+      throw new Error("Seller not found");
+    }
+    if (seller.status !== "active") {
+      throw new Error("Seller is not active. Cannot create product.");
+    }
     const supabaseClient = await createClient();
-    const { data, error } = await supabaseClient.from("products").insert(payload).select().single();
+    const { data, error } = await supabaseClient
+      .from("products")
+      .insert(payload)
+      .select()
+      .single();
+      
     if (error) throw new Error(error.message);
     return data;
   }
-
   /**
-   * Update product (from main)
+   * Update product
    */
   async update(id: string, payload: any) {
     const supabaseClient = await createClient();
-    const { data, error } = await supabaseClient.from("products").update(payload).eq("id", id).select().single();
+    const { data, error } = await supabaseClient
+      .from("products")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
+      
     if (error) throw new Error(error.message);
     return data;
   }
-
   /**
-   * Delete product (from main)
+   * Delete product
    */
   async delete(id: string) {
     const supabaseClient = await createClient();
-    const { error } = await supabaseClient.from("products").delete().eq("id", id);
+    const { error } = await supabaseClient
+      .from("products")
+      .delete()
+      .eq("id", id);
+      
     if (error) throw new Error(error.message);
     return true;
   }
-
   /**
-   * Get all categories (from main)
+   * Get all categories
    */
   async getCategories() {
     try {
       const supabaseClient = await createClient();
-      const { data, error } = await supabaseClient.from("categories").select("id, name").order("name");
+      const { data, error } = await supabaseClient
+        .from("categories")
+        .select("id, name")
+        .order("name");
+        
       if (error) throw new Error(error.message);
       return data || [];
     } catch (error) {
@@ -154,9 +286,8 @@ export default class ProductRepository {
       return [];
     }
   }
-
   /**
-   * Get product statistics for seller dashboard (from main)
+   * Get product statistics for seller dashboard
    */
   async getProductStats(sellerId: string) {
     try {
@@ -199,9 +330,15 @@ export default class ProductRepository {
       };
     }
   }
-
   /**
-   * Update product rating (from rajwaa)
+   * Update product rating
+   * 
+   * ⚠️ DEPRECATED: Use RPC function submit_review_with_rating_sync instead.
+   * This method is kept for backward compatibility and emergency manual fixes only.
+   * Direct rating updates should be avoided to prevent race conditions.
+   * 
+   * @param productId - Product UUID
+   * @param newRating - New average rating
    */
   async updateRating(productId: string, newRating: number): Promise<void> {
     try {
@@ -209,12 +346,10 @@ export default class ProductRepository {
         .from("products")
         .update({ rating: newRating })
         .eq("id", productId);
-
       if (error) {
         console.error("Error updating product rating:", error);
         throw new Error(`Database error: ${error.message}`);
       }
-
       console.log(`✅ Product ${productId} rating updated to ${newRating}`);
     } catch (error) {
       console.error("ProductRepository.updateRating error:", error);

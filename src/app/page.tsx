@@ -13,15 +13,19 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-red-50 via-white to-red-50/30 overflow-hidden">
+      <section className="relative overflow-hidden">
+        {/* Background Image */}
         <div 
-          className="absolute inset-0 opacity-[0.03]" 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: 'radial-gradient(circle, #DB4444 1px, transparent 1px)',
-            backgroundSize: '24px 24px'
+            backgroundImage: "url('/image/background.jpg')",
           }}
         />
         
+        {/* Dark Overlay for Text Readability */}
+        <div className="absolute inset-0 bg-black/40" />
+        
+        {/* Content (positioned above background) */}
         <div className="relative max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-20 md:py-28">
           <div className="text-center space-y-8">
             {/* Icons Row */}
@@ -38,28 +42,28 @@ export default async function Home() {
             </div>
             {/* Main Heading */}
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
                 Temukan Barang Impianmu
               </h1>
-              <p className="text-lg md:text-xl lg:text-2xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl lg:text-2xl text-white/90 max-w-2xl mx-auto">
                 Marketplace Terpercaya dengan Harga Terbaik
               </p>
             </div>
             {/* Statistics */}
             <div className="flex justify-center gap-8 md:gap-12 pt-4">
               <div className="text-center">
-                <p className="text-3xl md:text-4xl font-bold text-primary">
+                <p className="text-3xl md:text-4xl font-bold text-white">
                   {products.length}+
                 </p>
-                <p className="text-sm md:text-base text-gray-600">Produk</p>
+                <p className="text-sm md:text-base text-white/80">Produk</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl md:text-4xl font-bold text-primary">50K+</p>
-                <p className="text-sm md:text-base text-gray-600">Pengguna</p>
+                <p className="text-3xl md:text-4xl font-bold text-white">50K+</p>
+                <p className="text-sm md:text-base text-white/80">Pengguna</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl md:text-4xl font-bold text-primary">4.8</p>
-                <p className="text-sm md:text-base text-gray-600">Rating</p>
+                <p className="text-3xl md:text-4xl font-bold text-white">4.8</p>
+                <p className="text-sm md:text-base text-white/80">Rating</p>
               </div>
             </div>
             {/* CTA Button */}

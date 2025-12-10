@@ -1,211 +1,241 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { createClient } from "@supabase/supabase-js";
+import { 
+  Store, Package, ShoppingCart, DollarSign, 
+  TrendingUp, Clock, Loader2, Plus 
+} from "lucide-react";
 import Link from "next/link";
-import ChartSection from "./ChartSection";
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  rating: number;
-  status: string;
-  category?: { name: string };
-}
-
-interface Stats {
+interface DashboardStats {
   totalProducts: number;
   activeProducts: number;
-  criticalStock: number;
-  totalValue: number;
-  avgRating: number;
-  lowStockProducts: number;
-  outOfStockProducts: number;
+  totalOrders: number;
+  pendingOrders: number;
+  totalRevenue: number;
+  storeBalance: number;
 }
-
-export default function SellerDashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [stats, setStats] = useState<Stats>({
+export default function SellerDashboardPage() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
     activeProducts: 0,
-    criticalStock: 0,
-    totalValue: 0,
-    avgRating: 0,
-    lowStockProducts: 0,
-    outOfStockProducts: 0,
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalRevenue: 0,
+    storeBalance: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch products
-        const productsRes = await fetch("/api/products", { 
-          cache: "no-store",
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!productsRes.ok) {
-          throw new Error(`HTTP error! status: ${productsRes.status}`);
-        }
-
-        const productsJson = await productsRes.json();
-        
-        if (productsJson.success) {
-          setProducts(productsJson.data || []);
-        }
-
-        // Fetch statistics
-        const statsRes = await fetch("/api/products/stats", {
-          cache: "no-store",
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (statsRes.ok) {
-          const statsJson = await statsRes.json();
-          if (statsJson.success) {
-            setStats(statsJson.data);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setError(error instanceof Error ? error.message : "Terjadi kesalahan");
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-600">Error: {error}</div>
-      </div>
-    );
+    if (user?.id) {
+      loadDashboardStats();
+    }
+  }, [user]);
+  async function loadDashboardStats() {
+    try {
+      setLoading(true);
+      
+      // Get products count
+      const { count: totalProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("seller_id", user!.id);
+      const { count: activeProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("seller_id", user!.id)
+        .eq("status", "active");
+      // Get seller balance
+      const { data: sellerData } = await supabase
+        .from("sellers")
+        .select("balance")
+        .eq("id", user!.id)
+        .single();
+      setStats({
+        totalProducts: totalProducts || 0,
+        activeProducts: activeProducts || 0,
+        totalOrders: 0, // TODO: Implement orders
+        pendingOrders: 0, // TODO: Implement orders
+        totalRevenue: 0, // TODO: Calculate from orders
+        storeBalance: sellerData?.balance || 0,
+      });
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error);
+    } finally {
+      setLoading(false);
+    }
   }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-[1600px] mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Statistik</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Ringkasan performa toko Anda hari ini
-          </p>
+    <ProtectedRoute allowedRoles={["seller"]}>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Store className="w-8 h-8" />
+                  <h1 className="text-3xl font-bold">{user?.store_name}</h1>
+                </div>
+                <p className="text-red-100">
+                  Selamat datang kembali, {user?.name}!
+                </p>
+              </div>
+              <Link
+                href="/seller/dashboard/products/create"
+                className="
+                  flex items-center gap-2 px-6 py-3 
+                  bg-white text-red-600 rounded-lg font-semibold
+                  hover:bg-red-50 transition-colors
+                "
+              >
+                <Plus className="w-5 h-5" />
+                Tambah Produk
+              </Link>
+            </div>
+          </div>
+        </div>
+        {/* Stats Cards */}
+        <div className="container mx-auto px-4 py-8">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+            </div>
+          ) : (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Total Products */}
+                <StatCard
+                  title="Total Produk"
+                  value={stats.totalProducts}
+                  icon={Package}
+                  color="blue"
+                  subtitle={`${stats.activeProducts} aktif`}
+                />
+                {/* Total Orders */}
+                <StatCard
+                  title="Total Pesanan"
+                  value={stats.totalOrders}
+                  icon={ShoppingCart}
+                  color="green"
+                  subtitle={`${stats.pendingOrders} pending`}
+                />
+                {/* Revenue */}
+                <StatCard
+                  title="Total Pendapatan"
+                  value={`Rp ${stats.totalRevenue.toLocaleString("id-ID")}`}
+                  icon={TrendingUp}
+                  color="purple"
+                  subtitle="Semua waktu"
+                />
+                {/* Balance */}
+                <StatCard
+                  title="Saldo Toko"
+                  value={`Rp ${stats.storeBalance.toLocaleString("id-ID")}`}
+                  icon={DollarSign}
+                  color="orange"
+                  subtitle="Dapat ditarik"
+                />
+              </div>
+              {/* Quick Actions */}
+              <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Aksi Cepat
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <QuickActionButton
+                    href="/seller/dashboard/products"
+                    icon={Package}
+                    title="Kelola Produk"
+                    description="Lihat dan edit produk Anda"
+                  />
+                  <QuickActionButton
+                    href="/seller/dashboard/reports"
+                    icon={TrendingUp}
+                    title="Laporan Produk"
+                    description="Download laporan stok & rating"
+                  />
+                </div>
+              </div>
+              {/* Recent Activity Placeholder */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Aktivitas Terbaru
+                </h2>
+                <div className="text-center py-12 text-gray-400">
+                  <Clock className="w-12 h-12 mx-auto mb-3" />
+                  <p>Belum ada aktivitas</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      <div className="max-w-[1600px] mx-auto px-8 py-8">
-        {/* Stats Cards - 4 Horizontal Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* Card 1: Total Produk */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium mb-1">Total Produk</p>
-                <h3 className="text-3xl font-bold text-gray-900">
-                  {loading ? "-" : stats.totalProducts}
-                </h3>
-                <p className="text-xs text-gray-400 mt-2">
-                  {stats.outOfStockProducts > 0 ? `${stats.outOfStockProducts} stok habis` : "Semua tersedia"}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Produk Aktif */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium mb-1">Produk Aktif</p>
-                <h3 className="text-3xl font-bold text-green-600">
-                  {loading ? "-" : stats.activeProducts}
-                </h3>
-                <p className="text-xs text-green-500 mt-2">
-                  {stats.totalProducts > 0 
-                    ? `${Math.round((stats.activeProducts / stats.totalProducts) * 100)}% dari total` 
-                    : "Belum ada produk"}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Stok Kritis */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium mb-1">
-                  Stok Kritis ({'<'}2)
-                </p>
-                <h3
-                  className={`text-3xl font-bold ${
-                    stats.criticalStock > 0 ? "text-red-600" : "text-gray-900"
-                  }`}
-                >
-                  {loading ? "-" : stats.criticalStock}
-                </h3>
-                <p className="text-xs text-red-400 mt-2">
-                  {stats.lowStockProducts > 0 
-                    ? `${stats.lowStockProducts} produk stok menipis` 
-                    : "Stok aman"}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Nilai Inventori */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium mb-1">
-                  Nilai Inventori
-                </p>
-                <h3 className="text-2xl font-bold text-orange-600">
-                  {loading ? "-" : `Rp ${(stats.totalValue || 0).toLocaleString("id-ID")}`}
-                </h3>
-                <p className="text-xs text-orange-400 mt-2">
-                  Total nilai stok saat ini
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content: Charts */}
-        <div className="space-y-6">
-          {/* Chart Section */}
-          <ChartSection products={products} loading={loading} />
-        </div>
+    </ProtectedRoute>
+  );
+}
+// ===================================
+// STAT CARD COMPONENT
+// ===================================
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: "blue" | "green" | "purple" | "orange";
+  subtitle?: string;
+}
+function StatCard({ title, value, icon: Icon, color, subtitle }: StatCardProps) {
+  const colorClasses = {
+    blue: "bg-blue-50 text-blue-600 border-blue-200",
+    green: "bg-green-50 text-green-600 border-green-200",
+    purple: "bg-purple-50 text-purple-600 border-purple-200",
+    orange: "bg-orange-50 text-orange-600 border-orange-200",
+  };
+  return (
+    <div className={`${colorClasses[color]} border rounded-xl p-6`}>
+      <div className="flex items-center justify-between mb-3">
+        <Icon className="w-8 h-8" />
+      </div>
+      <div>
+        <p className="text-sm font-medium opacity-80 mb-1">{title}</p>
+        <p className="text-2xl font-bold mb-1">{value}</p>
+        {subtitle && <p className="text-xs opacity-70">{subtitle}</p>}
       </div>
     </div>
+  );
+}
+// ===================================
+// QUICK ACTION BUTTON COMPONENT
+// ===================================
+interface QuickActionButtonProps {
+  href: string;
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}
+function QuickActionButton({ href, icon: Icon, title, description }: QuickActionButtonProps) {
+  return (
+    <Link
+      href={href}
+      className="
+        flex items-start gap-4 p-4 rounded-lg border border-gray-200
+        hover:border-red-300 hover:bg-red-50 transition-all
+        group
+      "
+    >
+      <div className="p-3 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
+        <Icon className="w-6 h-6 text-red-600" />
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1">{title}</h3>
+        <p className="text-sm text-gray-600">{description}</p>
+      </div>
+    </Link>
   );
 }
