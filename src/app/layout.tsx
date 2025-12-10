@@ -6,14 +6,10 @@ export const metadata: Metadata = {
   description: "Form registrasi penjual marketplace PPL",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-100 min-h-screen">
+      <body className="min-h-screen">
         {children}
       </body>
     </html>

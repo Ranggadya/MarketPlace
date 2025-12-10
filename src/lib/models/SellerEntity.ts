@@ -1,6 +1,13 @@
-export type SellerStatus = "PENDING" | "ACTIVE" | "REJECTED";
-export type SellerRecord = ReturnType<SellerEntity["toObject"]>;
+// ==============================
+// Seller Types & Entity (Final)
+// ==============================
 
+export type SellerStatus = "PENDING" | "ACTIVE" | "REJECTED";
+
+/**
+ * Props yang diterima saat membuat SellerEntity (input dari service)
+ * Password harus sudah melalui hashing (passwordHash).
+ */
 export type SellerProps = {
   storeName: string;
   storeDescription?: string;
@@ -20,9 +27,44 @@ export type SellerProps = {
   picPhotoPath?: string;
   picKtpFilePath?: string;
 
-  password: string;
+  passwordHash: string;
 };
 
+/**
+ * Record lengkap sesuai struktur tabel Supabase.
+ * Berguna untuk repository & mapping data dari database.
+ */
+export type SellerRecord = {
+  id: string;
+
+  store_name: string;
+  store_description: string | null;
+
+  pic_name: string;
+  pic_phone: string;
+  pic_email: string;
+
+  pic_street: string;
+  pic_rt: string;
+  pic_rw: string;
+  pic_village: string;
+  pic_city: string;
+  pic_province: string;
+
+  pic_ktp_number: string;
+  pic_photo_path: string | null;
+  pic_ktp_file_path: string | null;
+
+  password: string;
+  status: SellerStatus;
+
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Seller Entity — Domain Model
+ */
 export class SellerEntity {
   id?: string;
 
@@ -44,22 +86,22 @@ export class SellerEntity {
   picPhotoPath?: string;
   picKtpFilePath?: string;
 
-  password!: string;
+  passwordHash!: string;
 
   status!: SellerStatus;
+
   created_at?: string;
   updated_at?: string;
 
   constructor(props: SellerProps) {
     Object.assign(this, props);
-
     this.status = "PENDING";
-
-    const now = new Date().toISOString();
-    this.created_at = now;
-    this.updated_at = now;
   }
 
+  /**
+   * Validasi field wajib terisi.
+   * Bisa dikembangkan dengan regex email validation.
+   */
   validate(): boolean {
     const required = [
       this.storeName,
@@ -73,16 +115,20 @@ export class SellerEntity {
       this.picCity,
       this.picProvince,
       this.picKtpNumber,
-      this.password,
+      this.passwordHash,
     ];
 
-    return required.every((i) => i && i.toString().trim().length > 0);
+    return required.every((r) => r && r.toString().trim().length > 0);
   }
 
+  /**
+   * Mengubah domain entity (camelCase)
+   * menjadi bentuk snake_case untuk Supabase insert/update.
+   */
   toObject() {
     return {
       store_name: this.storeName,
-      store_description: this.storeDescription,
+      store_description: this.storeDescription || null,
 
       pic_name: this.picName,
       pic_phone: this.picPhone,
@@ -96,14 +142,11 @@ export class SellerEntity {
       pic_province: this.picProvince,
 
       pic_ktp_number: this.picKtpNumber,
-      pic_photo_path: this.picPhotoPath,
-      pic_ktp_file_path: this.picKtpFilePath,
+      pic_photo_path: this.picPhotoPath || null,
+      pic_ktp_file_path: this.picKtpFilePath || null,
 
+      password: this.passwordHash,
       status: this.status,
-      password: this.password,
-
-      created_at: this.created_at,
-      updated_at: this.updated_at,
     };
   }
 }
