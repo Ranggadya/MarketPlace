@@ -26,27 +26,44 @@ export async function GET(request: Request) {
       // Laporan daftar akun penjual aktif dan tidak aktif
       const { data: sellers, error } = await supabase
         .from("sellers")
-        .select("id, store_name, status, created_at");
+        .select("id, store_name, status, created_at, pic_name, pic_email");
       
       if (error) throw error;
       
       data = sellers.map((s: any) => ({
+        user_name: s.pic_email, // Using email as User Name
+        pic_name: s.pic_name,
         store_name: s.store_name,
         status: s.status,
         is_verified: s.status === "APPROVED" || s.status === "ACTIVE",
         created_at: s.created_at,
       }));
+
+      // Sort: Active/Approved first, then others
+      data.sort((a, b) => {
+        const statusA = (a.status || "").toUpperCase();
+        const statusB = (b.status || "").toUpperCase();
+        
+        const aActive = statusA === "APPROVED" || statusA === "ACTIVE";
+        const bActive = statusB === "APPROVED" || statusB === "ACTIVE";
+        
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        return 0;
+      });
+
     } else if (type === "SELLERS_LOCATION") {
       // Laporan daftar penjual (toko) untuk setiap Lokasi propinsi
       const { data: sellers, error } = await supabase
         .from("sellers")
-        .select("id, store_name, pic_province, pic_city")
+        .select("id, store_name, pic_province, pic_city, pic_name")
         .order("pic_province", { ascending: true });
       
       if (error) throw error;
       
       data = sellers.map((s: any) => ({
         store_name: s.store_name,
+        pic_name: s.pic_name,
         province: s.pic_province,
         city: s.pic_city,
       }));

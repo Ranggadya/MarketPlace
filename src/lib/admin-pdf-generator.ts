@@ -47,17 +47,21 @@ export default function generateAdminReportPDF(
   // --- Content Generation ---
   if (type === "SELLERS_STATUS") {
     setHeader("DAFTAR STATUS AKUN PENJUAL");
-    const tableBody = data.map((item, index) => [
-      index + 1,
-      item.store_name || "-",
-      item.status || (item.is_verified ? "Terverifikasi" : "Belum Verifikasi"),
-      item.created_at
-        ? new Date(item.created_at).toLocaleDateString("id-ID")
-        : "-",
-    ]);
+    const tableBody = data.map((item, index) => {
+      const status = item.status ? item.status.toUpperCase() : "";
+      const isActive = status === "APPROVED" || status === "ACTIVE";
+      
+      return [
+        index + 1,
+        item.user_name || "-",
+        item.pic_name || "-",
+        item.store_name || "-",
+        isActive ? "Aktif" : "Tidak Aktif",
+      ];
+    });
     autoTable(doc, {
       startY: 60,
-      head: [["No", "Nama Toko", "Status Akun", "Tanggal Bergabung"]],
+      head: [["No", "Nama User", "Nama PIC", "Nama Toko", "Status"]],
       body: tableBody,
       theme: "grid",
       headStyles: { fillColor: [220, 38, 38], textColor: 255 },
@@ -67,13 +71,13 @@ export default function generateAdminReportPDF(
     setHeader("DAFTAR PENJUAL BERDASARKAN LOKASI");
     const tableBody = data.map((item, index) => [
       index + 1,
-      item.province || "Tidak Diketahui",
       item.store_name || "-",
-      item.city || "-",
+      item.pic_name || "-",
+      item.province || "Tidak Diketahui",
     ]);
     autoTable(doc, {
       startY: 60,
-      head: [["No", "Provinsi", "Nama Toko", "Kota/Kabupaten"]],
+      head: [["No", "Nama Toko", "Nama PIC", "Propinsi"]],
       body: tableBody,
       theme: "grid",
       headStyles: { fillColor: [220, 38, 38], textColor: 255 },
@@ -84,9 +88,9 @@ export default function generateAdminReportPDF(
     const tableBody = data.map((item, index) => [
       index + 1,
       item.name,
-      item.rating ? `${item.rating.toFixed(1)}/5` : "0/5", // ✅ FIX: Format X.X/5
-      fmtMoney(item.price),
       item.category,
+      fmtMoney(item.price),
+      item.rating ? `${item.rating.toFixed(1)}/5` : "0/5",
       item.store_name,
       item.province,
     ]);
@@ -95,12 +99,12 @@ export default function generateAdminReportPDF(
       head: [
         [
           "No",
-          "Nama Produk",
-          "Rating",
-          "Harga",
+          "Produk",
           "Kategori",
+          "Harga",
+          "Rating",
           "Nama Toko",
-          "Provinsi",
+          "Propinsi",
         ],
       ],
       body: tableBody,
@@ -110,9 +114,9 @@ export default function generateAdminReportPDF(
       columnStyles: {
         0: { cellWidth: 10 },
         1: { cellWidth: 40 },
-        2: { cellWidth: 15 },
+        2: { cellWidth: 25 },
         3: { cellWidth: 25 },
-        4: { cellWidth: 25 },
+        4: { cellWidth: 15 },
         5: { cellWidth: 30 },
         6: { cellWidth: 30 },
       },
