@@ -2,18 +2,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LogOut, ChevronDown } from "lucide-react";  // ✅ NEW
-import { useAuth } from "@/contexts/AuthContext";  // ✅ NEW
+import { LogOut, ChevronDown } from "lucide-react";  
+import { useAuth } from "@/contexts/AuthContext";  
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";  // ✅ NEW
+} from "@/components/ui/dropdown-menu";  
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout, user } = useAuth();  // ✅ NEW
-  const [isLoggingOut, setIsLoggingOut] = useState(false);  // ✅ NEW
+  const { logout, user } = useAuth(); 
+  const [isLoggingOut, setIsLoggingOut] = useState(false); 
   const menuItems = [
     {
       name: "Dashboard",
@@ -43,12 +43,11 @@ export default function Sidebar() {
       ),
     },
   ];
-  // ✅ NEW: Handle logout dengan loading state
+
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
       await logout();
-      // Redirect handled by AuthContext
     } catch (error) {
       console.error("Logout error:", error);
       setIsLoggingOut(false);
@@ -83,7 +82,7 @@ export default function Sidebar() {
           })}
         </ul>
       </nav>
-      {/* ✅ UPDATED Footer - User Info dengan Dropdown Logout */}
+
       <div className="p-4 border-t border-gray-200">
         <DropdownMenu>
           <DropdownMenuTrigger 

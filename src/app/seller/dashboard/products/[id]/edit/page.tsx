@@ -5,9 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Swal from 'sweetalert2';
 import { Upload, X, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-// ===================================
-// INTERFACES
-// ===================================
+
 interface Category {
   id: string;
   name: string;
@@ -18,7 +16,7 @@ interface ProductFormData {
   description: string;
   price: number;
   stock: number;
-  category_id: string;  // ✅ FIXED: Changed from 'category' to 'category_id'
+  category_id: string;  
 }
 export default function EditProductPage() {
   const router = useRouter();
@@ -29,24 +27,22 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(false);
   const [fetchingProduct, setFetchingProduct] = useState(true);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [loadingCategories, setLoadingCategories] = useState(true);  // ✅ NEW
+  const [loadingCategories, setLoadingCategories] = useState(true);  
   
-  const [categories, setCategories] = useState<Category[]>([]);  // ✅ NEW
+  const [categories, setCategories] = useState<Category[]>([]);  
   
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
     price: 0,
     stock: 0,
-    category_id: ''  // ✅ FIXED: Changed from 'category' to 'category_id'
+    category_id: ''  
   });
   
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
-  // ===================================
-  // FETCH CATEGORIES FROM DATABASE
-  // ===================================
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -60,8 +56,7 @@ export default function EditProductPage() {
         setCategories(data.categories || []);
       } catch (error: any) {
         console.error('Fetch categories error:', error);
-        
-        // ✅ Fallback to default categories if API fails
+   
         setCategories([
           { id: '1', name: 'Electronics', slug: 'electronics' },
           { id: '2', name: 'Fashion', slug: 'fashion' },
@@ -81,9 +76,7 @@ export default function EditProductPage() {
     
     fetchCategories();
   }, []);
-  // ===================================
-  // FETCH EXISTING PRODUCT DATA
-  // ===================================
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -100,7 +93,7 @@ export default function EditProductPage() {
           description: data.description || '',
           price: data.price,
           stock: data.stock,
-          category_id: data.category_id || ''  // ✅ FIXED: Get category_id (UUID)
+          category_id: data.category_id || ''  
         });
         
         setExistingImages(data.images || []);
@@ -144,7 +137,6 @@ export default function EditProductPage() {
       });
       return;
     }
-    // Validate file types and sizes
     const validFiles = files.filter(file => {
       const isValidType = file.type.startsWith('image/');
       const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
@@ -166,7 +158,7 @@ export default function EditProductPage() {
       }
       return true;
     });
-    // Create previews
+
     const newPreviews: string[] = [];
     validFiles.forEach(file => {
       const reader = new FileReader();
@@ -214,7 +206,7 @@ export default function EditProductPage() {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validation
+
     if (!formData.name.trim()) {
       Swal.fire('Error', 'Nama produk harus diisi', 'error');
       return;
@@ -231,7 +223,7 @@ export default function EditProductPage() {
       Swal.fire('Error', 'Stok tidak boleh negatif', 'error');
       return;
     }
-    if (!formData.category_id) {  // ✅ FIXED: Validate category_id
+    if (!formData.category_id) {  
       Swal.fire('Error', 'Silakan pilih kategori', 'error');
       return;
     }
@@ -242,7 +234,7 @@ export default function EditProductPage() {
     }
     setLoading(true);
     try {
-      // Upload new images if any
+
       const newImageUrls = await uploadNewImages();
       
       // Combine existing and new image URLs

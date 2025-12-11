@@ -15,19 +15,16 @@ export default function ProtectedRoute({
   const router = useRouter();
   useEffect(() => {
     if (!loading) {
-      // Not authenticated → redirect to login
       if (!isAuthenticated) {
         router.push("/login");
         return;
       }
-      // Authenticated but wrong role → redirect to home
       if (role && !allowedRoles.includes(role)) {
         router.push("/");
         return;
       }
     }
   }, [isAuthenticated, role, loading, router, allowedRoles]);
-  // Show loading spinner while checking auth
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -35,10 +32,8 @@ export default function ProtectedRoute({
       </div>
     );
   }
-  // Not authenticated or wrong role → show nothing (will redirect)
   if (!isAuthenticated || (role && !allowedRoles.includes(role))) {
     return null;
   }
-  // Authenticated and correct role → show content
   return <>{children}</>;
 }

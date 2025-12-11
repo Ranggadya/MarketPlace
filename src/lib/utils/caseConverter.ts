@@ -1,16 +1,8 @@
-/**
- * Case Conversion Utilities
- * Convert between camelCase (TypeScript) and snake_case (PostgreSQL)
- */
-/**
- * Convert camelCase object keys to snake_case
- * @param obj - Object with camelCase keys
- * @returns Object with snake_case keys
- */
+
 export function toSnakeCase(obj: Record<string, any>): Record<string, any> {
-  // Special field mappings (exact mappings that bypass conversion)
+
   const specialMappings: Record<string, string> = {
-    // Photo/File URLs
+ 
     'picPhotoPath': 'pic_photo_url',
     'picKtpFilePath': 'pic_ktp_url',
     

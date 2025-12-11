@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import SearchBar from "@/components/SearchBar";
+import SearchBar from "@/components/SearchBarMini";
 import CategoryPills from "@/components/CategoryPills";
 export default function ProductPageClientWrapper() {
   const router = useRouter();
@@ -47,13 +47,13 @@ export default function ProductPageClientWrapper() {
   };
   return (
     <div className="space-y-4">
-      <SearchBar 
+      <SearchBar
         onSearch={handleSearch}
         initialKeyword={currentKeyword}
         initialLocation={currentLocation}
         initialCategory={currentCategory}
       />
-      <CategoryPills 
+      <CategoryPills
         onCategoryChange={handleCategoryChange}
         initialCategory={currentCategory}
       />

@@ -48,7 +48,6 @@ export default function SellerDashboardPage() {
     try {
       setLoading(true);
 
-      // Get products count
       const { count: totalProducts } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
@@ -58,7 +57,7 @@ export default function SellerDashboardPage() {
         .select("*", { count: "exact", head: true })
         .eq("seller_id", user!.id)
         .eq("status", "active");
-      // Get seller balance
+
       const { data: sellerData } = await supabase
         .from("sellers")
         .select("balance")
@@ -67,9 +66,9 @@ export default function SellerDashboardPage() {
       setStats({
         totalProducts: totalProducts || 0,
         activeProducts: activeProducts || 0,
-        totalOrders: 0, // TODO: Implement orders
-        pendingOrders: 0, // TODO: Implement orders
-        totalRevenue: 0, // TODO: Calculate from orders
+        totalOrders: 0, 
+        pendingOrders: 0, 
+        totalRevenue: 0, 
         storeBalance: sellerData?.balance || 0,
       });
     } catch (error) {
@@ -175,6 +174,7 @@ export default function SellerDashboardPage() {
                     title="Laporan Produk"
                     description="Download laporan stok & rating"
                   />
+                  
                 </div>
               </div>
               {/* Recent Activity Placeholder */}
@@ -194,9 +194,7 @@ export default function SellerDashboardPage() {
     </ProtectedRoute>
   );
 }
-// ===================================
-// STAT CARD COMPONENT
-// ===================================
+
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -230,9 +228,7 @@ function StatCard({
     </div>
   );
 }
-// ===================================
-// QUICK ACTION BUTTON COMPONENT
-// ===================================
+
 interface QuickActionButtonProps {
   href: string;
   icon: React.ElementType;
