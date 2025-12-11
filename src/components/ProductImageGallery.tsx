@@ -14,7 +14,7 @@ export default function ProductImageGallery({
   const handleThumbnailClick = (index: number) => {
     setActiveIndex(index);
   };
-  // Fallback jika images array kosong
+
   if (!images || images.length === 0) {
     return (
       <div className="aspect-square overflow-hidden rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center">

@@ -55,7 +55,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/about" className="hover:text-primary transition-colors">
-                  Tentang Marketplace PPL
+                  Tentang LokaLin
                 </Link>
               </li>
               <li>
@@ -107,7 +107,7 @@ export default function Footer() {
               <li className="flex items-start gap-2">
                 <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <a href="mailto:support@marketplaceppl.com" className="hover:text-primary transition-colors">
-                  support@marketplaceppl.com
+                  support@lokalin.com
                 </a>
               </li>
               <li className="flex items-start gap-2">
@@ -128,7 +128,7 @@ export default function Footer() {
         </div>
         
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Marketplace PPL. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} LokaLin. All rights reserved.</p>
         </div>
       </div>
     </footer>

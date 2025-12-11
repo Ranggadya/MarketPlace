@@ -13,7 +13,7 @@ export default function CategoryPills({
   initialCategory = "all" 
 }: CategoryPillsProps) {
   const [activeCategory, setActiveCategory] = useState(initialCategory);
-  // Sync dengan initial value dari URL
+
   useEffect(() => {
     setActiveCategory(initialCategory);
   }, [initialCategory]);

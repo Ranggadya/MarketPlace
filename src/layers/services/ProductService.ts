@@ -122,7 +122,7 @@ export class ProductService {
         category: rawData.categories?.name || "Uncategorized",
         rating: averageRating > 0 ? averageRating : rawData.rating,
         sold: rawData.sold_count || 0,
-        location: formattedLocation, // ✅ FIXED: "City, Province" format
+        location: formattedLocation, 
         storeName: rawData.sellers?.store_name || "Unknown Store",
         sellerId: rawData.seller_id,
         categoryId: rawData.category_id,

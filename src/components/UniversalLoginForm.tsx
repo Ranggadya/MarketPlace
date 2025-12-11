@@ -16,7 +16,6 @@ export default function UniversalLoginForm() {
     setErrors({});
     const formData = new FormData(e.currentTarget);
     const body = Object.fromEntries(formData.entries());
-    // Basic validation
     const newErrors: { email?: string; password?: string } = {};
     if (!body.email) newErrors.email = "Email wajib diisi";
     if (!body.password) newErrors.password = "Password wajib diisi";
@@ -32,7 +31,7 @@ export default function UniversalLoginForm() {
     });
     const json = await res.json();
     if (!res.ok || !json.success) {
-      // Error Toast
+
       Swal.fire({
         icon: "error",
         title: "Login Gagal",
@@ -43,7 +42,7 @@ export default function UniversalLoginForm() {
       setLoading(false);
       return;
     }
-    // Success Toast
+ 
     Swal.fire({
       icon: "success",
       title: "Login Berhasil!",
@@ -55,14 +54,10 @@ export default function UniversalLoginForm() {
       background: "#FEF2F2",
       iconColor: "#DB4444",
     });
-    // ========================================
-    // ⭐ FIX: Wait for cookies to be set, then verify session before redirect
-    // ========================================
+
     setTimeout(async () => {
-      // Store user data in localStorage for AuthContext
       localStorage.setItem("user", JSON.stringify(json.account));
       localStorage.setItem("role", json.role);
-      // ⭐ Verify session is accessible by trying to access a protected endpoint
       try {
         // Small delay to ensure cookies are fully set in browser
         await new Promise(resolve => setTimeout(resolve, 200));

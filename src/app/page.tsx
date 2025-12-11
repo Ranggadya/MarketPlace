@@ -5,6 +5,7 @@ import TrustSection from "@/components/TrustSection";
 import TestimonialSection from "@/components/TestimonialSection";
 import Footer from "@/components/Footer";
 import HomeClientWrapper from "@/components/HomeClientWrapper";
+import HeroBannerCarousel from "@/components/HeroBannerCarousel";
 import { ProductService } from "@/layers/services/ProductService";
 export default async function Home() {
   // Fetch ALL products (no filter applied at homepage)
@@ -81,13 +82,14 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      <HeroBannerCarousel />
       {/* Sticky Search Bar Container */}
       <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 py-4">
         <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8">
           <HomeClientWrapper type="searchbar" />
         </div>
       </div>
-      {/* Category Pills Container (Normal Flow - Non Sticky) */}
+
       <section className="px-4 md:px-6 lg:px-8 py-4 bg-white">
         <div className="max-w-5xl mx-auto">
           <HomeClientWrapper type="pills" />
@@ -119,11 +121,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
-      {/* Trust Section */}
       <TrustSection />
-      {/* Testimonial Section */}
       <TestimonialSection />
-      {/* Footer */}
       <Footer />
     </main>
   );
