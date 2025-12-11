@@ -1,7 +1,9 @@
 import { LucideIcon } from "lucide-react";
+
 interface AnimatedIconRowProps {
   icons: LucideIcon[];
 }
+
 export default function AnimatedIconRow({ icons }: AnimatedIconRowProps) {
   return (
     <div className="flex justify-center gap-4 mb-8">

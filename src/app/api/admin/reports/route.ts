@@ -3,26 +3,33 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
+  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
       { error: "Server Configuration Error" },
       { status: 500 }
     );
   }
+  
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  
   try {
     let data: any[] = [];
+    
     if (type === "SELLERS_STATUS") {
       // Laporan daftar akun penjual aktif dan tidak aktif
       const { data: sellers, error } = await supabase
         .from("sellers")
         .select("id, store_name, status, created_at");
+      
       if (error) throw error;
+      
       data = sellers.map((s: any) => ({
         store_name: s.store_name,
         status: s.status,
@@ -31,122 +38,151 @@ export async function GET(request: Request) {
       }));
     } else if (type === "SELLERS_LOCATION") {
       // Laporan daftar penjual (toko) untuk setiap Lokasi propinsi
-      // ✅ FIXED: Menggunakan pic_province dan pic_city (sesuai schema)
       const { data: sellers, error } = await supabase
         .from("sellers")
         .select("id, store_name, pic_province, pic_city")
         .order("pic_province", { ascending: true });
+      
       if (error) throw error;
+      
       data = sellers.map((s: any) => ({
         store_name: s.store_name,
-        province: s.pic_province, // ✅ FIXED: pic_province
-        city: s.pic_city,         // ✅ FIXED: pic_city
+        province: s.pic_province,
+        city: s.pic_city,
       }));
     } else if (type === "PRODUCTS_RATING") {
-      console.log("🔍 Fetching PRODUCTS_RATING...");
-      // Attempt 1: Full Join
-      // ✅ FIXED: sellers (store_name, pic_province) bukan province
-      // ✅ FIXED: guest_reviews (bukan reviews)
+      console.log("🔍 [ADMIN REPORT] Fetching PRODUCTS_RATING...");
+      
+      // Attempt 1: Full Join with reviews
       let { data: products, error } = await supabase.from("products").select(`
           id, 
           name, 
           price, 
+          rating,
           categories (name),
           sellers (store_name, pic_province),
           guest_reviews (rating)
         `);
+      
       if (error) {
-        console.warn("⚠️ Attempt 1 (Full Join) failed:", error.message);
+        console.warn("⚠️ [ADMIN REPORT] Attempt 1 (Full Join) failed:", error.message);
+        
         // Attempt 2: Manual fetching fallback
-        const { data: basicProducts, error: basicError } = await supabase.from(
-          "products"
-        ).select(`
-            id, 
-            name, 
-            price,
-            seller_id,
-            category_id
-          `);
+        const { data: basicProducts, error: basicError } = await supabase
+          .from("products")
+          .select(`id, name, price, rating, seller_id, category_id`);
+        
         if (basicError) {
-          console.error(
-            "❌ Critical: Failed to fetch basic products:",
-            basicError.message
-          );
+          console.error("❌ [ADMIN REPORT] Critical: Failed to fetch basic products:", basicError.message);
           throw basicError;
         }
-        // Manual Fetching for relations (N+1 problem but safe fallback)
-        console.log("⚠️ Switching to Manual Fetching for relations...");
-        const sellerIds = [
-          ...new Set(
-            basicProducts.map((p: any) => p.seller_id).filter(Boolean)
-          ),
-        ];
-        const categoryIds = [
-          ...new Set(
-            basicProducts.map((p: any) => p.category_id).filter(Boolean)
-          ),
-        ];
-        // ✅ FIXED: Select pic_province instead of province
+        
+        console.log("⚠️ [ADMIN REPORT] Switching to Manual Fetching...");
+        
+        // Fetch related data
+        const sellerIds = [...new Set(basicProducts.map((p: any) => p.seller_id).filter(Boolean))];
+        const categoryIds = [...new Set(basicProducts.map((p: any) => p.category_id).filter(Boolean))];
+        const productIds = basicProducts.map((p: any) => p.id);
+        
         const { data: sellers } = await supabase
           .from("sellers")
           .select("id, store_name, pic_province")
           .in("id", sellerIds);
+        
         const { data: categories } = await supabase
           .from("categories")
           .select("id, name")
           .in("id", categoryIds);
-        // Map manually
+        
+        // ✅ CRITICAL FIX: Fetch reviews separately and calculate rating
+        const { data: reviews } = await supabase
+          .from("guest_reviews")
+          .select("product_id, rating")
+          .in("product_id", productIds);
+        
+        // Group reviews by product
+        const reviewsByProduct = new Map<string, number[]>();
+        reviews?.forEach((review: any) => {
+          if (!reviewsByProduct.has(review.product_id)) {
+            reviewsByProduct.set(review.product_id, []);
+          }
+          reviewsByProduct.get(review.product_id)!.push(review.rating);
+        });
+        
+        // Map manually with calculated ratings
         data = basicProducts.map((p: any) => {
           const seller = sellers?.find((s: any) => s.id === p.seller_id);
           const category = categories?.find((c: any) => c.id === p.category_id);
+          const productReviews = reviewsByProduct.get(p.id) || [];
+          
+          // Calculate average rating from reviews OR use products.rating column
+          let avgRating = p.rating || 0;
+          if (productReviews.length > 0) {
+            avgRating = productReviews.reduce((sum, r) => sum + r, 0) / productReviews.length;
+          }
+          
           return {
             name: p.name,
-            rating: 0, // Default 0 if reviews fail
+            rating: avgRating,
             price: p.price,
             category: category?.name || "Uncategorized",
             store_name: seller?.store_name || "Unknown Store",
-            province: seller?.pic_province || "Unknown Location", // ✅ FIXED
+            province: seller?.pic_province || "Unknown Location",
           };
         });
+        
+        console.log(`✅ [ADMIN REPORT] Manual fetch complete: ${data.length} products`);
       } else {
         // Happy Path: Full Join Succeeded
-        // ✅ FIXED: p.guest_reviews (bukan p.reviews)
+        console.log(`✅ [ADMIN REPORT] Full join succeeded: ${products?.length || 0} products`);
+        
         data = (products || []).map((p: any) => {
           const ratings = p.guest_reviews?.map((r: any) => r.rating) || [];
-          const avgRating =
-            ratings.length > 0
-              ? ratings.reduce((a: number, b: number) => a + b, 0) /
-                ratings.length
-              : 0;
+          
+          // Use calculated average from reviews OR fallback to products.rating column
+          let avgRating = p.rating || 0;
+          if (ratings.length > 0) {
+            avgRating = ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length;
+          }
+          
           return {
             name: p.name,
             rating: avgRating,
             price: p.price,
             category: p.categories?.name || "Uncategorized",
             store_name: p.sellers?.store_name || "Unknown Store",
-            province: p.sellers?.pic_province || "Unknown Location", // ✅ FIXED
+            province: p.sellers?.pic_province || "Unknown Location",
           };
         });
       }
+      
       // Sort by rating descending
       data.sort((a: any, b: any) => b.rating - a.rating);
+      
+      // ✅ DEBUG LOG: Show sample data
+      console.log(`📊 [ADMIN REPORT] Total products: ${data.length}`);
+      console.log(`📊 [ADMIN REPORT] Sample data:`, data.slice(0, 3).map(d => ({
+        name: d.name,
+        rating: d.rating,
+        store: d.store_name
+      })));
+      
     } else if (type === "LATEST_REVIEWS") {
       // Fetch reviews with product info
-      // ✅ FIXED: guest_reviews (bukan reviews)
       const { data: reviews, error } = await supabase
         .from("guest_reviews")
-        .select(
-          `
+        .select(`
           id,
           rating,
           comment,
           created_at,
           products (name, images)
-        `
-        )
+        `)
         .order("created_at", { ascending: false })
         .limit(50);
+      
       if (error) throw error;
+      
       data = reviews.map((r: any) => ({
         id: r.id,
         product_name: r.products?.name || "Unknown Product",
@@ -164,9 +200,10 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
+    
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("Report API Error:", error);
+    console.error("❌ [ADMIN REPORT] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

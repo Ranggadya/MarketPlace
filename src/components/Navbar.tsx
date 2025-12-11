@@ -1,8 +1,10 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -11,12 +13,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
 export default function Navbar() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Detect scroll untuk sticky shadow effect
+  
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -24,8 +26,7 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Hide Navbar on Admin and Seller dashboards
+  
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/seller/dashboard")) {
     return null;
   }
@@ -37,16 +38,19 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="p-2 bg-primary rounded-lg group-hover:bg-primary/90 transition-colors">
-              <ShoppingBag className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">
-              Marketplace <span className="text-primary">PPL</span>
-            </span>
+        
+          <Link href="/" className="flex items-center group">
+            <Image
+              src="/image/logo.png"
+              alt="Marketplace PPL Logo"
+              width={160}
+              height={160}
+              quality={100}
+              className="h-18 w-auto md:h-20 hover:opacity-90 transition-opacity"
+              priority
+            />
           </Link>
-          {/* Desktop Actions */}
+          
           <div className="hidden md:flex items-center gap-4">
             <Button variant="ghost" asChild>
               <Link href="/login">Masuk</Link>
@@ -55,7 +59,7 @@ export default function Navbar() {
               <Link href="/seller/register">Mulai Jualan</Link>
             </Button>
           </div>
-          {/* Mobile Menu - Sheet */}
+          
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <button className="md:hidden p-2 text-gray-700 hover:text-primary transition-colors">

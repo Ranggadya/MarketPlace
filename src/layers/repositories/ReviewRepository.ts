@@ -56,7 +56,7 @@ export class ReviewRepository {
   }
   /**
    * Create new guest review
-   * ✅ UPDATED: Enhanced error handling untuk duplicate constraint violation
+   * ✅ UPDATED: Enhanced error handling + auto-update product rating
    * 
    * @param reviewData - Data review dari form
    * @returns Created review object
@@ -80,6 +80,7 @@ export class ReviewRepository {
         .single();
       if (error) {
         console.error("Error creating review:", error);
+        
         // ✅ ENHANCED: Check if error is duplicate constraint violation
         // PostgreSQL error code 23505 = unique_violation
         if (error.code === "23505") {
@@ -92,11 +93,20 @@ export class ReviewRepository {
           // Fallback untuk unique violation lainnya
           throw new Error("Data duplikat terdeteksi. Silakan cek kembali.");
         }
+        
         // Error lainnya
         throw new Error(`Database error: ${error.message}`);
       }
       if (!data) {
         throw new Error("Gagal membuat review: Tidak ada data dikembalikan.");
+      }
+      // ✅ NEW: Update product rating after successful insert (Fallback for RPC)
+      try {
+        await this.updateProductRating(reviewData.productId);
+        console.log(`✅ Product rating updated for product ${reviewData.productId}`);
+      } catch (ratingError) {
+        console.error("⚠️ Warning: Failed to update product rating:", ratingError);
+        // Don't throw - review was created successfully, rating update is secondary
       }
       // Map response ke Frontend interface
       return mapReviewDBToGuestReview(data as ReviewDB);
@@ -158,6 +168,44 @@ export class ReviewRepository {
     } catch (error) {
       console.error("ReviewRepository.getAverageRating error:", error);
       return 0;
+    }
+  }
+  /**
+   * ✅ NEW: Recalculate and update product rating
+   * Called as fallback when RPC function is not available
+   * 
+   * @param productId - UUID dari product
+   */
+  async updateProductRating(productId: string): Promise<void> {
+    try {
+      // Step 1: Get all ratings for this product
+      const { data, error } = await supabase
+        .from("guest_reviews")
+        .select("rating")
+        .eq("product_id", productId);
+      if (error) {
+        console.error("Error fetching ratings:", error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      // Step 2: Calculate average rating (rounded to 1 decimal)
+      let avgRating = 0;
+      if (data && data.length > 0) {
+        const total = data.reduce((sum, review) => sum + review.rating, 0);
+        avgRating = parseFloat((total / data.length).toFixed(1));
+      }
+      // Step 3: Update products table
+      const { error: updateError } = await supabase
+        .from("products")
+        .update({ rating: avgRating })
+        .eq("id", productId);
+      if (updateError) {
+        console.error("Error updating product rating:", updateError);
+        throw new Error(`Failed to update rating: ${updateError.message}`);
+      }
+      console.log(`✅ Product ${productId} rating updated to ${avgRating} (${data?.length || 0} reviews)`);
+    } catch (error) {
+      console.error("ReviewRepository.updateProductRating error:", error);
+      throw error;
     }
   }
 }

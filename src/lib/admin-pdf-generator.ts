@@ -65,11 +65,9 @@ export default function generateAdminReportPDF(
     });
   } else if (type === "SELLERS_LOCATION") {
     setHeader("DAFTAR PENJUAL BERDASARKAN LOKASI");
-    // ✅ FIXED: item.province already mapped dari pic_province di API
-    // No changes needed here, just ensure API passes correct data
     const tableBody = data.map((item, index) => [
       index + 1,
-      item.province || "Tidak Diketahui", // ✅ OK: Data sudah benar dari API
+      item.province || "Tidak Diketahui",
       item.store_name || "-",
       item.city || "-",
     ]);
@@ -83,16 +81,14 @@ export default function generateAdminReportPDF(
     });
   } else if (type === "PRODUCTS_RATING") {
     setHeader("DAFTAR PRODUK & RATING (TERTINGGI)");
-    // ✅ FIXED: item.province already mapped dari pic_province di API
-    // No changes needed here, just ensure API passes correct data
     const tableBody = data.map((item, index) => [
       index + 1,
       item.name,
-      item.rating ? `${item.rating.toFixed(1)} ★` : "0 ★",
+      item.rating ? `${item.rating.toFixed(1)}/5` : "0/5", // ✅ FIX: Format X.X/5
       fmtMoney(item.price),
       item.category,
       item.store_name,
-      item.province, // ✅ OK: Data sudah benar dari API
+      item.province,
     ]);
     autoTable(doc, {
       startY: 60,
