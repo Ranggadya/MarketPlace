@@ -1,35 +1,63 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LogOut, ChevronDown } from "lucide-react";  
-import { useAuth } from "@/contexts/AuthContext";  
+import { LogOut, ChevronDown, ShoppingCart } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";  
+} from "@/components/ui/dropdown-menu";
+
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout, user } = useAuth(); 
-  const [isLoggingOut, setIsLoggingOut] = useState(false); 
+  const { logout, user } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const menuItems = [
     {
       name: "Dashboard",
       path: "/seller/dashboard",
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+          />
         </svg>
       ),
+    },
+    {
+      name: "Jumlah Pesanan",
+      path: "/seller/dashboard/orders",
+      icon: <ShoppingCart className="w-5 h-5" />,
     },
     {
       name: "Kelola Produk",
       path: "/seller/dashboard/products",
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+          />
         </svg>
       ),
     },
@@ -37,8 +65,18 @@ export default function Sidebar() {
       name: "Laporan",
       path: "/seller/dashboard/reports",
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
         </svg>
       ),
     },
@@ -53,13 +91,13 @@ export default function Sidebar() {
       setIsLoggingOut(false);
     }
   };
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo */}
       <div className="h-16 flex items-center justify-center border-b border-gray-200">
         <h1 className="text-2xl font-bold text-red-600">MYSTORE</h1>
       </div>
-      {/* Menu Items */}
+
       <nav className="flex-1 px-4 py-6">
         <ul className="space-y-1">
           {menuItems.map((item) => {
@@ -85,7 +123,7 @@ export default function Sidebar() {
 
       <div className="p-4 border-t border-gray-200">
         <DropdownMenu>
-          <DropdownMenuTrigger 
+          <DropdownMenuTrigger
             className="w-full focus:outline-none"
             disabled={isLoggingOut}
           >
@@ -104,7 +142,7 @@ export default function Sidebar() {
               <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
             </div>
           </DropdownMenuTrigger>
-          
+
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem
               onClick={handleLogout}
