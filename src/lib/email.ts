@@ -112,59 +112,68 @@ export async function sendApprovalEmail({
             </style>
           </head>
           <body>
-            <div class="header">
-              <h1>🎉 Welcome to MarketPlace!</h1>
-              <p>Your seller account for <strong>${storeName}</strong> has been approved</p>
-            </div>
-            
-            <div class="content">
-              <p>Hi <strong>${name}</strong>,</p>
-              
-              <p>Congratulations! Your seller account has been approved and is now active. You can start selling your products right away!</p>
-              
-              <div class="credentials">
-                <h3>Your Login Credentials</h3>
-                
-                <div class="credential-item">
-                  <span class="credential-label">Email:</span>
-                  <span class="credential-value">${email}</span>
-                </div>
-                
-                <div class="credential-item">
-                  <span class="credential-label">Temporary Password:</span>
-                  <span class="credential-value">${password}</span>
-                </div>
-              </div>
-              
-              <div class="warning">
-                <strong>⚠️ Important:</strong> Please change your password after your first login for security reasons.
-              </div>
-              
-              <center>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login" class="button">
-                  Login to Your Dashboard
-                </a>
-              </center>
-              
-              <h3>What's Next?</h3>
-              <ul>
-                <li>Login to your seller dashboard</li>
-                <li>Complete your profile information</li>
-                <li>Add your first product</li>
-                <li>Start receiving orders!</li>
-              </ul>
-              
-              <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-              
-              <p>Happy selling!<br>
-              <strong>The MarketPlace Team</strong></p>
-            </div>
-            
-            <div class="footer">
-              <p>This is an automated email. Please do not reply to this message.</p>
-              <p>&copy; ${new Date().getFullYear()} MarketPlace. All rights reserved.</p>
-            </div>
-          </body>
+  <div class="header">
+    <h1>🎉 Selamat Datang di MarketPlace!</h1>
+    <p>Akun penjual Anda untuk <strong>${storeName}</strong> telah disetujui</p>
+  </div>
+  
+  <div class="content">
+    <p>Halo <strong>${name}</strong>,</p>
+    
+    <p>
+      Selamat! Akun penjual Anda telah berhasil disetujui dan kini aktif. 
+      Anda sudah dapat mulai menjual produk Anda segera!
+    </p>
+    
+    <div class="credentials">
+      <h3>Kredensial Login Anda</h3>
+      
+      <div class="credential-item">
+        <span class="credential-label">Email:</span>
+        <span class="credential-value">${email}</span>
+      </div>
+      
+      <div class="credential-item">
+        <span class="credential-label">Kata Sandi Sementara:</span>
+        <span class="credential-value">${password}</span>
+      </div>
+    </div>
+    
+    <div class="warning">
+      <strong>⚠️ Penting:</strong> Harap ubah kata sandi Anda setelah login pertama demi keamanan akun.
+    </div>
+    
+    <center>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login" class="button">
+        Masuk ke Dashboard Penjual
+      </a>
+    </center>
+    
+    <h3>Apa Langkah Selanjutnya?</h3>
+    <ul>
+      <li>Masuk ke dashboard penjual Anda</li>
+      <li>Lengkapi informasi profil toko</li>
+      <li>Tambahkan produk pertama Anda</li>
+      <li>Mulai menerima pesanan dari pelanggan!</li>
+    </ul>
+    
+    <p>
+      Jika Anda memiliki pertanyaan atau membutuhkan bantuan, 
+      jangan ragu untuk menghubungi tim dukungan kami.
+    </p>
+    
+    <p>
+      Selamat berjualan!<br>
+      <strong>Tim MarketPlace</strong>
+    </p>
+  </div>
+  
+  <div class="footer">
+    <p>Email ini dikirim secara otomatis. Mohon untuk tidak membalas pesan ini.</p>
+    <p>&copy; ${new Date().getFullYear()} MarketPlace. Seluruh hak cipta dilindungi.</p>
+  </div>
+</body>
+
         </html>
       `
     });

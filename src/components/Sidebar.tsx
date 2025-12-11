@@ -37,11 +37,7 @@ export default function Sidebar() {
         </svg>
       ),
     },
-    {
-      name: "Jumlah Pesanan",
-      path: "/seller/dashboard/orders",
-      icon: <ShoppingCart className="w-5 h-5" />,
-    },
+
     {
       name: "Kelola Produk",
       path: "/seller/dashboard/products",

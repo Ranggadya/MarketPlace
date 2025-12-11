@@ -45,7 +45,6 @@ export default function SellerProductsPage() {
     try {
       setLoading(true);
 
-      // ⭐ RLS automatically filters by seller_id = auth.uid()
       const { data, error } = await supabase
         .from("products")
         .select("*")
@@ -74,7 +73,7 @@ export default function SellerProductsPage() {
       .from("products")
       .update({ status: newStatus })
       .eq("id", productId)
-      .eq("seller_id", user!.id); // ⭐ Double-check ownership
+      .eq("seller_id", user!.id); 
     if (error) {
       Swal.fire({
         icon: "error",
@@ -110,7 +109,7 @@ export default function SellerProductsPage() {
       .from("products")
       .delete()
       .eq("id", productId)
-      .eq("seller_id", user!.id); // ⭐ Double-check ownership
+      .eq("seller_id", user!.id); 
     if (error) {
       Swal.fire({
         icon: "error",
@@ -216,9 +215,7 @@ export default function SellerProductsPage() {
     </ProtectedRoute>
   );
 }
-// ===================================
-// PRODUCT CARD COMPONENT
-// ===================================
+
 interface ProductCardProps {
   product: Product;
   onToggleStatus: (id: string, status: string) => void;
