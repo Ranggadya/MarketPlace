@@ -1,16 +1,17 @@
 import { ReactNode } from "react";
 import { ShoppingBag, Store, Shield, Star, Package, TrendingUp } from "lucide-react";
+
 interface AuthLayoutProps {
   children: ReactNode;
   title: string;
   subtitle: string;
 }
+
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      {/* LEFT: Form Section */}
+      
       <div className="flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-red-50 via-white to-red-50/30 relative overflow-hidden">
-        {/* Pattern Background */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
