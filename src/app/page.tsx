@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import HomeClientWrapper from "@/components/HomeClientWrapper";
 import HeroBannerCarousel from "@/components/HeroBannerCarousel";
 import { ProductService } from "@/layers/services/ProductService";
+import { Suspense } from "react";
 export default async function Home() {
   // Fetch ALL products (no filter applied at homepage)
   const productService = new ProductService();
@@ -16,16 +17,16 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: "url('/image/background.jpg')",
           }}
         />
-        
+
         {/* Dark Overlay for Text Readability */}
         <div className="absolute inset-0 bg-black/40" />
-        
+
         {/* Content (positioned above background) */}
         <div className="relative max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-20 md:py-28">
           <div className="text-center space-y-8">
@@ -59,7 +60,9 @@ export default async function Home() {
                 <p className="text-sm md:text-base text-white/80">Produk</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl md:text-4xl font-bold text-white">50K+</p>
+                <p className="text-3xl md:text-4xl font-bold text-white">
+                  50K+
+                </p>
                 <p className="text-sm md:text-base text-white/80">Pengguna</p>
               </div>
               <div className="text-center">
@@ -86,13 +89,17 @@ export default async function Home() {
       {/* Sticky Search Bar Container */}
       <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 py-4">
         <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8">
-          <HomeClientWrapper type="searchbar" />
+          <Suspense>
+            <HomeClientWrapper type="searchbar" />
+          </Suspense>
         </div>
       </div>
 
       <section className="px-4 md:px-6 lg:px-8 py-4 bg-white">
         <div className="max-w-5xl mx-auto">
-          <HomeClientWrapper type="pills" />
+          <Suspense>
+            <HomeClientWrapper type="pills" />
+          </Suspense>
         </div>
       </section>
       {/* Product Catalog Section */}
@@ -111,7 +118,9 @@ export default async function Home() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
             {products.length === 0 ? (
               <div className="col-span-full text-center py-16">
-                <p className="text-gray-500 text-lg">Belum ada produk tersedia</p>
+                <p className="text-gray-500 text-lg">
+                  Belum ada produk tersedia
+                </p>
               </div>
             ) : (
               products.map((product) => (

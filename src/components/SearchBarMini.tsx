@@ -8,18 +8,20 @@ interface SearchBarMiniProps {
   onSearch?: (keyword: string, location: string, category: string) => void;
   initialKeyword?: string;
   initialLocation?: string;
+  initialCategory?: string;
 }
 
 export default function SearchBarMini({
   onSearch,
   initialKeyword = "",
   initialLocation = "",
+  initialCategory = "all",
 }: SearchBarMiniProps) {
   const [searchQuery, setSearchQuery] = useState(initialKeyword);
   const [locationQuery, setLocationQuery] = useState(initialLocation);
 
   const triggerSearch = () => {
-    onSearch?.(searchQuery, locationQuery, "all");
+    onSearch?.(searchQuery, locationQuery, initialCategory);
   };
 
   const handleSubmit = (e: FormEvent) => {
