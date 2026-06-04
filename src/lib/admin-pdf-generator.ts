@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-const fmtMoney = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+export const fmtMoney = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 export default function generateAdminReportPDF(
   type: "SELLERS_STATUS" | "SELLERS_LOCATION" | "PRODUCTS_RATING",
   data: any[],

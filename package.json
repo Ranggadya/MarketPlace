@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:run": "vitest run"
+   "test:run": "vitest run --reporter=verbose"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
