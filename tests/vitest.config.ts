@@ -11,7 +11,7 @@ export default defineConfig({
     reporters: ["verbose"],
     coverage: {
       provider: "v8",
-      include: ["src/lib/format.ts", "src/lib/models/Review.ts"],
+      include: ["src/components/ProductCard.tsx", "src/lib/models/Review.ts"],
       reporter: ["text", "text-summary"],
     },
   },

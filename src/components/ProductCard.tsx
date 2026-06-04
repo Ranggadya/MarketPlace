@@ -2,6 +2,16 @@ import Link from "next/link";
 import { Star, MapPin, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+
+// Format harga ke Rupiah Indonesia (contoh: 150000 -> "Rp 150.000")
+export function formatPrice(price: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(price);
+}
+
 interface ProductCardProps {
   id: string;
   name: string;
@@ -23,14 +33,6 @@ export default function ProductCard({
   imageUrl,
   sold = 0,
 }: ProductCardProps) {
-  // Format harga ke Rupiah Indonesia
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
   // Format sold count dengan thousand separator
   const formatSold = (count: number) => {
     return new Intl.NumberFormat("id-ID").format(count);
