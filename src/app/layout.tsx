@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import ScrollToTop from "@/components/ScrollToTop";
+import { Suspense } from "react";
+
 const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MarketPlace - Jual Beli Online",
@@ -18,7 +20,9 @@ export default function RootLayout({
     <html lang="id">
       <body className={inter.className}>
         <AuthProvider>
-          <Navbar />
+          <Suspense>
+            <Navbar />
+          </Suspense>
           {children}
           <ScrollToTop />
         </AuthProvider>

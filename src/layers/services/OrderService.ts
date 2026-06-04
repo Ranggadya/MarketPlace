@@ -13,8 +13,9 @@ export class OrderService {
   }
 
   async getSummaryBySeller(sellerId: string): Promise<OrderSummary> {
-    const { data, error } = await this.supabase
-      .from("orders")             
+    const supabase = await this.supabase;
+    const { data, error } = await supabase
+      .from("orders")
       .select("created_at")
       .eq("seller_id", sellerId);
 
@@ -27,9 +28,8 @@ export class OrderService {
 
     const summary: OrderSummary = {
       total: data.length,
-      today: data.filter((o) =>
-        String(o.created_at).slice(0, 10) === todayStr
-      ).length,
+      today: data.filter((o) => String(o.created_at).slice(0, 10) === todayStr)
+        .length,
     };
 
     return summary;
