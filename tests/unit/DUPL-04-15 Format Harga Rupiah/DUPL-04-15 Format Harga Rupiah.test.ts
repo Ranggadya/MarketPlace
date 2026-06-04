@@ -21,8 +21,8 @@ describe("DUPL-04-15: formatPrice - Formatter Mata Uang Rupiah", () => {
   });
 
   it("membulatkan & menghilangkan angka desimal", () => {
-    expect(norm(formatPrice(150000.4))).toBe("Rp 150.000"); // dibulatkan ke bawah
-    expect(norm(formatPrice(150000.6))).toBe("Rp 150.001"); // dibulatkan ke atas
+    expect(norm(formatPrice(150000.4))).toBe("Rp 150.000"); 
+    expect(norm(formatPrice(150000.6))).toBe("Rp 150.001"); 
   });
 
   it("selalu diawali prefiks 'Rp' dan memakai pemisah ribuan titik", () => {
