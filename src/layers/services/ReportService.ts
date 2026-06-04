@@ -12,21 +12,21 @@ export default class ReportService {
     return await this.repo.getBySellerId(sellerId);
   }
 
-  // SRS-12: Data Stok (Urutkan stok terbanyak -> sedikit)
+  // SRS-MartPlace-12: Data Stok (Urutkan stok terbanyak -> sedikit)
   async getStockReport(sellerId: string) {
     const products = await this.getAllProducts(sellerId);
     // Sort descending by stock
     return products.sort((a, b) => b.stock - a.stock);
   }
 
-  // SRS-13: Data Rating (Urutkan rating tertinggi -> terendah)
+  // SRS-MartPlace-13: Data Rating (Urutkan rating tertinggi -> terendah)
   async getRatingReport(sellerId: string) {
     const products = await this.getAllProducts(sellerId);
     // Sort descending by rating
     return products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
-  // SRS-14: Data Warning (Filter stok < 2, Urutkan Nama)
+  // SRS-MartPlace-14: Data Warning (Filter stok < 2, Urutkan Nama)
   async getWarningReport(sellerId: string) {
     const products = await this.getAllProducts(sellerId);
     

@@ -12,7 +12,7 @@ export interface SellerProps {
   picProvince: string;
   picKtpNumber: string;
   picPhotoPath?: string;  // Maps to pic_photo_url in DB
-  picKtpFilePath?: string; // Maps to pic_ktp_url in DB
+  picKtpFilePath?: string; 
   status: string;
   createdAt: string;
 }
@@ -25,6 +25,7 @@ export class Seller {
       status: "PENDING",
       createdAt: new Date().toISOString(),
     };
+
   }
   validate(): boolean {
     return !!(

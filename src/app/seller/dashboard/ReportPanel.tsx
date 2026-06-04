@@ -36,7 +36,7 @@ export default function ReportPanel({ products, user }: ReportPanelProps) {
       
       <div className="p-3">
         <ul className="space-y-2">
-          {/* SRS-12 */}
+          {/* SRS-MartPlace-12 */}
           <li>
             <button 
               onClick={() => handleDownload("STOCK")} 
@@ -57,7 +57,7 @@ export default function ReportPanel({ products, user }: ReportPanelProps) {
             </button>
           </li>
 
-          {/* SRS-13 */}
+          {/* SRS-MartPlace-13 */}
           <li>
             <button 
               onClick={() => handleDownload("RATING")} 
@@ -78,7 +78,7 @@ export default function ReportPanel({ products, user }: ReportPanelProps) {
             </button>
           </li>
 
-          {/* SRS-14 */}
+          {/* SRS-MartPlace-14 */}
           <li>
             <button 
               onClick={() => handleDownload("WARNING")} 

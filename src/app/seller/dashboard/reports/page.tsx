@@ -143,7 +143,7 @@ export default function ReportsPage() {
             </div>
             {/* Report Cards Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* SRS-12: Stock Report */}
+              {/* SRS-MartPlace-12: Stock Report */}
               <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-blue-500 transition-all shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
@@ -169,7 +169,7 @@ export default function ReportsPage() {
                   {products.length === 0 ? "Tidak Ada Data" : "Download PDF"}
                 </button>
               </div>
-              {/* SRS-13: Rating Report */}
+              {/* SRS-MartPlace-13: Rating Report */}
               <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-yellow-500 transition-all shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-lg bg-yellow-500 flex items-center justify-center">
@@ -195,7 +195,7 @@ export default function ReportsPage() {
                   {products.length === 0 ? "Tidak Ada Data" : "Download PDF"}
                 </button>
               </div>
-              {/* SRS-14: Warning Report */}
+              {/* SRS-MartPlace-14: Warning Report */}
               <div className="bg-white rounded-xl p-5 border border-gray-200 hover:border-red-500 transition-all shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center">

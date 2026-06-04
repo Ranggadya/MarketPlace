@@ -139,7 +139,7 @@ export default function EditProductPage() {
     }
     const validFiles = files.filter(file => {
       const isValidType = file.type.startsWith('image/');
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+      const isValidSize = file.size <= 5 * 1024 * 1024; 
       if (!isValidType) {
         Swal.fire({
           icon: 'error',

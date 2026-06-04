@@ -330,16 +330,7 @@ export default class ProductRepository {
       };
     }
   }
-  /**
-   * Update product rating
-   * 
-   * ⚠️ DEPRECATED: Use RPC function submit_review_with_rating_sync instead.
-   * This method is kept for backward compatibility and emergency manual fixes only.
-   * Direct rating updates should be avoided to prevent race conditions.
-   * 
-   * @param productId - Product UUID
-   * @param newRating - New average rating
-   */
+
   async updateRating(productId: string, newRating: number): Promise<void> {
     try {
       const { error } = await supabase

@@ -56,7 +56,7 @@ export default function AdminReportsPage() {
 
   const reports = [
     {
-      id: "SELLERS_STATUS",
+      id: "SELLERS_STATUS", // SRS-MartPlace-09
       title: "Laporan Status Penjual",
       description:
         "Daftar akun penjual aktif dan tidak aktif (terverifikasi/belum).",
@@ -65,7 +65,7 @@ export default function AdminReportsPage() {
       btnColor: "bg-blue-600 hover:bg-blue-700",
     },
     {
-      id: "SELLERS_LOCATION",
+      id: "SELLERS_LOCATION", // SRS-MartPlace-10
       title: "Laporan Lokasi Penjual",
       description: "Daftar penjual dikelompokkan berdasarkan lokasi provinsi.",
       icon: <MapPin className="w-8 h-8 text-green-500" />,
@@ -73,7 +73,7 @@ export default function AdminReportsPage() {
       btnColor: "bg-green-600 hover:bg-green-700",
     },
     {
-      id: "PRODUCTS_RATING",
+      id: "PRODUCTS_RATING", // SRS-MartPlace-11
       title: "Laporan Rating Produk",
       description:
         "Daftar produk diurutkan berdasarkan rating tertinggi, lengkap dengan info toko.",

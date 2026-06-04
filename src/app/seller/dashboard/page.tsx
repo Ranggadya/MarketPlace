@@ -151,7 +151,7 @@ export default function SellerDashboardPage() {
                 />
               </div>
 
-              {/* Charts Section (SRS-08) */}
+              {/* Charts Section (SRS-MartPlace-08) */}
               <div className="mb-8">
                 <SellerDashboardCharts />
               </div>
