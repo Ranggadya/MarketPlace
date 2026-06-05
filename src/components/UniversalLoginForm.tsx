@@ -97,7 +97,7 @@ export default function UniversalLoginForm() {
       {/* Animated Icons */}
       <AnimatedIconRow icons={[ShoppingBag, User, Shield]} />
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <Input
           label="Email"
           name="email"
